@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "736864606063",
+    "firebase_url": "https://flutter-test-f9ed4-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "flutter-test-f9ed4",
+    "storage_bucket": "flutter-test-f9ed4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:736864606063:android:8d591ff5fcda99d5bfba9a",
+        "android_client_info": {
+          "package_name": "com.example.file_import"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_2ciq9w0EotqRHA21A1zmTH_K2DbV1eg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:736864606063:android:96187070c09c776abfba9a",
+        "android_client_info": {
+          "package_name": "com.example.flutter_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_2ciq9w0EotqRHA21A1zmTH_K2DbV1eg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
