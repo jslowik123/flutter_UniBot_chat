@@ -1,64 +1,36 @@
 import 'package:flutter/material.dart';
 
-class ProjectTile extends StatelessWidget {
-  final Map<String, dynamic> project;
-  final Function viewProjectFunc;
-  final Function deleteProjectFunc;
-  final Function editProjectFunc;
+class ChatbotTile extends StatelessWidget {
+  final Map<String, dynamic> chatbot;
+  final Function openChatFunc;
 
-  const ProjectTile({
+  const ChatbotTile({
     super.key,
-    required this.project,
-    required this.viewProjectFunc,
-    required this.deleteProjectFunc,
-    required this.editProjectFunc,
+    required this.chatbot,
+    required this.openChatFunc,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Datum aus den Projekt-Daten holen
-    final String? date = project['data']?['date'];
+    final theme = Theme.of(context);
+    final String? date = chatbot['data']?['date'];
 
     return Card(
-      elevation: 4,
+      elevation: 1,
       margin: const EdgeInsets.symmetric(vertical: 6.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300, width: 1.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: ListTile(
-        onTap: () => viewProjectFunc(context, project),
-        leading: CircleAvatar(
-          backgroundColor: Colors.blue.shade100,
-          child: const Icon(Icons.work, color: Colors.blueAccent),
-        ),
-        title: Text(
-          project['name'],
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        // Ersetze den Text 'Projekt Details' mit dem Datum
+        onTap: () => openChatFunc(context, chatbot),
+        leading: CircleAvatar(child: Icon(Icons.work)),
+        title: Text(chatbot['name'], style: theme.textTheme.headlineSmall),
         subtitle: Text(
-          date ??
-              'Kein Datum verfügbar', // Falls kein Datum vorhanden ist, wird dieser Text angezeigt
-          style: TextStyle(color: Colors.grey),
+          date ?? 'Kein Datum verfügbar',
+          style: theme.textTheme.bodyMedium,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: () {
-                editProjectFunc(project['name']); // Projekt umbenennen
-              },
-              tooltip: 'Projekt bearbeiten',
-            ),
-
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.redAccent),
-              onPressed: () => deleteProjectFunc(project["name"]),
-              tooltip: 'Projekt löschen',
-            ),
-          ],
+        trailing: IconButton(
+          icon: Icon(Icons.chat_bubble),
+          onPressed: () => openChatFunc(context, chatbot),
+          tooltip: 'Chat öffnen',
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16.0,

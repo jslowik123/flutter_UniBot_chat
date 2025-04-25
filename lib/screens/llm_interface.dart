@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/chat_message.dart';
-import '../widgets/chat_bubble.dart'; 
+import '../widgets/chat_bubble.dart';
 
 class LLMInterface extends StatefulWidget {
   const LLMInterface({super.key});
@@ -32,8 +32,9 @@ class LLMInterfaceState extends State<LLMInterface> {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Der Bot wurde erfolgreich gestartet!'),
+            SnackBar(
+              content: const Text('Der Bot wurde erfolgreich gestartet!'),
+              backgroundColor: Theme.of(context).colorScheme.secondary,
             ),
           );
           setState(() {
@@ -45,7 +46,10 @@ class LLMInterfaceState extends State<LLMInterface> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Starten des Bots: $e')),
+        SnackBar(
+          content: Text('Fehler beim Starten des Bots: $e'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
       );
     }
   }
@@ -53,7 +57,10 @@ class LLMInterfaceState extends State<LLMInterface> {
   Future<void> sendMessage() async {
     if (!_botStarted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bot wurde noch nicht gestartet!')),
+        SnackBar(
+          content: const Text('Bot wurde noch nicht gestartet!'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
       );
       return;
     }
@@ -61,7 +68,10 @@ class LLMInterfaceState extends State<LLMInterface> {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte gib einen Prompt ein!')),
+        SnackBar(
+          content: const Text('Bitte gib einen Prompt ein!'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
       );
       return;
     }
@@ -118,8 +128,10 @@ class LLMInterfaceState extends State<LLMInterface> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('LLM Chat'), elevation: 4),
+      appBar: AppBar(title: const Text('LLM Chat'), elevation: 0),
       body: Container(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -133,9 +145,10 @@ class LLMInterfaceState extends State<LLMInterface> {
               ),
             ),
             if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: CircularProgressIndicator(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: CircularProgressIndicator(
+                ),
               ),
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
@@ -146,15 +159,24 @@ class LLMInterfaceState extends State<LLMInterface> {
                       controller: _controller,
                       decoration: InputDecoration(
                         hintText: 'Schreibe eine Nachricht...',
+                        hintStyle: theme.textTheme.bodyMedium,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            width: 2,
+                          ),
                         ),
                       ),
                       maxLines: 1,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send),
+                    icon: Icon(Icons.send),
                     onPressed: sendMessage,
                   ),
                 ],
