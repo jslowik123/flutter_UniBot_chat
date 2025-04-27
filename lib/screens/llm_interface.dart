@@ -17,10 +17,21 @@ class LLMInterfaceState extends State<LLMInterface> {
   bool _isLoading = false;
   final String _baseUrl = 'http://localhost:8000';
   bool _botStarted = false;
+  String _projectName = '';
 
   @override
   void initState() {
     super.initState();
+    // Get route arguments after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args.containsKey('name')) {
+        setState(() {
+          _projectName = args['name'];
+        });
+      }
+    });
     startBot();
   }
 
@@ -85,7 +96,7 @@ class LLMInterfaceState extends State<LLMInterface> {
       final response = await http.post(
         Uri.parse('$_baseUrl/send_message'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_input': prompt}),
+        body: jsonEncode({'user_input': prompt, 'namespace': _projectName}),
       );
 
       if (response.statusCode == 200) {
@@ -94,6 +105,16 @@ class LLMInterfaceState extends State<LLMInterface> {
           _controller.clear();
           _messages.add(
             ChatMessage(text: data['response'], isUserMessage: false),
+          );
+        });
+      } else if (response.statusCode == 422) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              text: "Fehler: ${data['message'] ?? 'Ungültige Anfrage'}",
+              isUserMessage: false,
+            ),
           );
         });
       } else if (response.statusCode == 401) {
@@ -128,10 +149,11 @@ class LLMInterfaceState extends State<LLMInterface> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('LLM Chat'), elevation: 0),
+      appBar: AppBar(
+        title: Text(_projectName.isNotEmpty ? _projectName : 'LLM Chat'),
+        elevation: 0,
+      ),
       body: Container(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -147,8 +169,7 @@ class LLMInterfaceState extends State<LLMInterface> {
             if (_isLoading)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: CircularProgressIndicator(
-                ),
+                child: CircularProgressIndicator(),
               ),
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
@@ -159,26 +180,19 @@ class LLMInterfaceState extends State<LLMInterface> {
                       controller: _controller,
                       decoration: InputDecoration(
                         hintText: 'Schreibe eine Nachricht...',
-                        hintStyle: theme.textTheme.bodyMedium,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                          ),
+                          borderSide: BorderSide(),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            width: 2,
-                          ),
+                          borderSide: BorderSide(width: 2),
                         ),
                       ),
                       maxLines: 1,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.send),
-                    onPressed: sendMessage,
-                  ),
+                  IconButton(icon: Icon(Icons.send), onPressed: sendMessage),
                 ],
               ),
             ),

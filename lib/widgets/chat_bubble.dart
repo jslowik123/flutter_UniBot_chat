@@ -8,7 +8,6 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
 
     return Align(
       alignment:
@@ -19,8 +18,8 @@ class ChatBubble extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               message.isUserMessage
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.surface,
+                  ? Colors.blue
+                  : Colors.grey,
           borderRadius: BorderRadius.circular(8.0),
           boxShadow: [
             BoxShadow(
@@ -32,13 +31,6 @@ class ChatBubble extends StatelessWidget {
         ),
         child: Text(
           message.text,
-          style: TextStyle(
-            color:
-                message.isUserMessage
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface,
-            fontSize: 16.0,
-          ),
         ),
       ),
     );

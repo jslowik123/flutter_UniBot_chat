@@ -12,20 +12,22 @@ class ChatbotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final String? date = chatbot['data']?['date'];
 
     return Card(
-      elevation: 1,
+      elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 6.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300, width: 1.0),
+      ),
       child: ListTile(
         onTap: () => openChatFunc(context, chatbot),
-        leading: CircleAvatar(child: Icon(Icons.work)),
-        title: Text(chatbot['name'], style: theme.textTheme.headlineSmall),
+        leading: CircleAvatar(child: Icon(Icons.work, color: Colors.blue)),
+        title: Text(chatbot['name']),
         subtitle: Text(
           date ?? 'Kein Datum verfügbar',
-          style: theme.textTheme.bodyMedium,
+          style: TextStyle(color: Colors.grey),
         ),
         trailing: IconButton(
           icon: Icon(Icons.chat_bubble),
