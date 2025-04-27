@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/chat_message.dart';
 import '../widgets/chat_bubble.dart';
+import '../config/app_config.dart';
 
 class LLMInterface extends StatefulWidget {
   const LLMInterface({super.key});
@@ -15,15 +16,14 @@ class LLMInterfaceState extends State<LLMInterface> {
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:8000';
   bool _botStarted = false;
   String _projectName = '';
 
   @override
   void initState() {
     super.initState();
-    // Get route arguments after the widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Get route arguments and start bot after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args.containsKey('name')) {
@@ -31,37 +31,48 @@ class LLMInterfaceState extends State<LLMInterface> {
           _projectName = args['name'];
         });
       }
+      // Start bot after getting arguments
+      await startBot();
     });
-    startBot();
   }
 
   Future<void> startBot() async {
     try {
-      final response = await http.post(Uri.parse('$_baseUrl/start_bot'));
+      print('Starting bot...'); // Debug print
+      final response = await http.post(
+        Uri.parse('${AppConfig.apiBaseUrl}/start_bot'),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Der Bot wurde erfolgreich gestartet!'),
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-            ),
-          );
-          setState(() {
-            _botStarted = true;
-          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Der Bot wurde erfolgreich gestartet!'),
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+              ),
+            );
+            setState(() {
+              _botStarted = true;
+            });
+          }
         } else {
-          throw Exception('Failed to start bot');
+          throw Exception('Failed to start bot: ${data['message']}');
         }
+      } else {
+        throw Exception('Failed to start bot: ${response.statusCode}');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Fehler beim Starten des Bots: $e'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-      );
+      print('Error starting bot: $e'); // Debug print
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Starten des Bots: $e'),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+          ),
+        );
+      }
     }
   }
 
@@ -94,9 +105,9 @@ class LLMInterfaceState extends State<LLMInterface> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/send_message'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_input': prompt, 'namespace': _projectName}),
+        Uri.parse('${AppConfig.apiBaseUrl}/send_message'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {'user_input': prompt, 'namespace': _projectName},
       );
 
       if (response.statusCode == 200) {
