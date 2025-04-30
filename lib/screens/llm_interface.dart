@@ -38,7 +38,6 @@ class LLMInterfaceState extends State<LLMInterface> {
 
   Future<void> startBot() async {
     try {
-      print('Starting bot...'); // Debug print
       final response = await http.post(
         Uri.parse('${AppConfig.apiBaseUrl}/start_bot'),
       );
@@ -64,7 +63,7 @@ class LLMInterfaceState extends State<LLMInterface> {
         throw Exception('Failed to start bot: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error starting bot: $e'); // Debug print
+      // Debug print
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -100,30 +99,49 @@ class LLMInterfaceState extends State<LLMInterface> {
 
     setState(() {
       _isLoading = true;
+      _controller.clear();
       _messages.add(ChatMessage(text: prompt, isUserMessage: true));
     });
 
     try {
       final response = await http.post(
         Uri.parse('${AppConfig.apiBaseUrl}/send_message'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {'user_input': prompt, 'namespace': _projectName},
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Accept': 'application/json; charset=UTF-8',
+        },
+        body: {
+          'user_input': prompt,
+          'namespace': _projectName.isNotEmpty ? _projectName : 'default',
+        },
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _controller.clear();
-          _messages.add(
-            ChatMessage(text: data['response'], isUserMessage: false),
-          );
-        });
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final responseText = data['response'] as String?;
+        if (responseText != null) {
+          setState(() {
+            _messages.add(
+              ChatMessage(text: responseText, isUserMessage: false),
+            );
+          });
+        } else {
+          setState(() {
+            _messages.add(
+              ChatMessage(
+                text: "Fehler: Keine Antwort vom Server erhalten",
+                isUserMessage: false,
+              ),
+            );
+          });
+        }
       } else if (response.statusCode == 422) {
-        final data = jsonDecode(response.body);
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final errorMessage = data['message'] as String?;
         setState(() {
           _messages.add(
             ChatMessage(
-              text: "Fehler: ${data['message'] ?? 'Ungültige Anfrage'}",
+              text: "Fehler: ${errorMessage ?? 'Ungültige Anfrage'}",
               isUserMessage: false,
             ),
           );
@@ -201,6 +219,8 @@ class LLMInterfaceState extends State<LLMInterface> {
                         ),
                       ),
                       maxLines: 1,
+                      onSubmitted: (_) => sendMessage(),
+                      textInputAction: TextInputAction.send,
                     ),
                   ),
                   IconButton(icon: Icon(Icons.send), onPressed: sendMessage),

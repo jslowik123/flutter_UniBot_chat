@@ -8,7 +8,6 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Align(
       alignment:
           message.isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
@@ -16,10 +15,7 @@ class ChatBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
         decoration: BoxDecoration(
-          color:
-              message.isUserMessage
-                  ? Colors.blue
-                  : Colors.grey,
+          color: message.isUserMessage ? Colors.blue : Colors.grey,
           borderRadius: BorderRadius.circular(8.0),
           boxShadow: [
             BoxShadow(
@@ -29,8 +25,16 @@ class ChatBubble extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
-          message.text,
+        child: RichText(
+          text: TextSpan(
+            text: message.text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontFamily: 'Roboto',
+              height: 1.4,
+            ),
+          ),
         ),
       ),
     );
