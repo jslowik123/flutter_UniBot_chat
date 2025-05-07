@@ -104,49 +104,69 @@ class LLMInterfaceState extends State<LLMInterface> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/send_message'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'Accept': 'application/json; charset=UTF-8',
-        },
-        body: {
-          'user_input': prompt,
-          'namespace': _projectName.isNotEmpty ? _projectName : 'default',
-        },
-      );
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/send_message');
+      final request =
+          http.MultipartRequest('POST', uri)
+            ..fields['user_input'] = prompt
+            ..fields['namespace'] =
+                _projectName.isNotEmpty ? _projectName : 'default';
 
-      if (response.statusCode == 200) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        final responseText = data['response'] as String?;
-        if (responseText != null) {
-          setState(() {
-            _messages.add(
-              ChatMessage(text: responseText, isUserMessage: false),
-            );
-          });
-        } else {
+      final streamedResponse = await request.send();
+      final responseData = await streamedResponse.stream.bytesToString();
+
+      if (streamedResponse.statusCode == 200) {
+        try {
+          final jsonResponse = json.decode(responseData);
+          final responseText = jsonResponse['response'] as String?;
+          if (responseText != null) {
+            setState(() {
+              _messages.add(
+                ChatMessage(text: responseText, isUserMessage: false),
+              );
+            });
+          } else {
+            setState(() {
+              _messages.add(
+                ChatMessage(
+                  text: "Fehler: Keine Antwort vom Server erhalten",
+                  isUserMessage: false,
+                ),
+              );
+            });
+          }
+        } catch (jsonError) {
           setState(() {
             _messages.add(
               ChatMessage(
-                text: "Fehler: Keine Antwort vom Server erhalten",
+                text: "Fehler bei der Verarbeitung der Antwort: $jsonError",
                 isUserMessage: false,
               ),
             );
           });
         }
-      } else if (response.statusCode == 422) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        final errorMessage = data['message'] as String?;
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: "Fehler: ${errorMessage ?? 'Ungültige Anfrage'}",
-              isUserMessage: false,
-            ),
-          );
-        });
-      } else if (response.statusCode == 401) {
+      } else if (streamedResponse.statusCode == 422) {
+        try {
+          final jsonResponse = json.decode(responseData);
+          final errorMessage = jsonResponse['message'] as String?;
+          setState(() {
+            _messages.add(
+              ChatMessage(
+                text: "Fehler: ${errorMessage ?? 'Ungültige Anfrage'}",
+                isUserMessage: false,
+              ),
+            );
+          });
+        } catch (jsonError) {
+          setState(() {
+            _messages.add(
+              ChatMessage(
+                text: "Fehler bei der Verarbeitung der Fehlermeldung",
+                isUserMessage: false,
+              ),
+            );
+          });
+        }
+      } else if (streamedResponse.statusCode == 401) {
         setState(() {
           _messages.add(
             ChatMessage(
@@ -159,7 +179,7 @@ class LLMInterfaceState extends State<LLMInterface> {
         setState(() {
           _messages.add(
             ChatMessage(
-              text: 'Fehler: ${response.statusCode}',
+              text: 'Fehler: ${streamedResponse.statusCode}',
               isUserMessage: false,
             ),
           );
