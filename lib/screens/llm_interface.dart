@@ -22,7 +22,6 @@ class LLMInterfaceState extends State<LLMInterface> {
   @override
   void initState() {
     super.initState();
-    // Get route arguments and start bot after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -31,7 +30,6 @@ class LLMInterfaceState extends State<LLMInterface> {
           _projectName = args['name'];
         });
       }
-      // Start bot after getting arguments
       await startBot();
     });
   }
@@ -63,7 +61,6 @@ class LLMInterfaceState extends State<LLMInterface> {
         throw Exception('Failed to start bot: ${response.statusCode}');
       }
     } catch (e) {
-      // Debug print
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -105,19 +102,21 @@ class LLMInterfaceState extends State<LLMInterface> {
 
     try {
       final uri = Uri.parse('${AppConfig.apiBaseUrl}/send_message');
-      final request =
-          http.MultipartRequest('POST', uri)
-            ..fields['user_input'] = prompt
-            ..fields['namespace'] =
-                _projectName.isNotEmpty ? _projectName : 'default';
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['user_input'] = prompt
+        ..fields['namespace'] =
+            _projectName.isNotEmpty ? _projectName : 'default';
 
       final streamedResponse = await request.send();
       final responseData = await streamedResponse.stream.bytesToString();
+
+      debugPrint('Serverantwort: $responseData');
 
       if (streamedResponse.statusCode == 200) {
         try {
           final jsonResponse = json.decode(responseData);
           final responseText = jsonResponse['response'] as String?;
+
           if (responseText != null) {
             setState(() {
               _messages.add(
@@ -128,7 +127,7 @@ class LLMInterfaceState extends State<LLMInterface> {
             setState(() {
               _messages.add(
                 ChatMessage(
-                  text: "Fehler: Keine Antwort vom Server erhalten",
+                  text: "Keine Antwort erhalten. Serverantwort: $jsonResponse",
                   isUserMessage: false,
                 ),
               );
@@ -231,11 +230,11 @@ class LLMInterfaceState extends State<LLMInterface> {
                         hintText: 'Schreibe eine Nachricht...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(),
+                          borderSide: const BorderSide(),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(width: 2),
+                          borderSide: const BorderSide(width: 2),
                         ),
                       ),
                       maxLines: 1,
@@ -243,7 +242,7 @@ class LLMInterfaceState extends State<LLMInterface> {
                       textInputAction: TextInputAction.send,
                     ),
                   ),
-                  IconButton(icon: Icon(Icons.send), onPressed: sendMessage),
+                  IconButton(icon: const Icon(Icons.send), onPressed: sendMessage),
                 ],
               ),
             ),
