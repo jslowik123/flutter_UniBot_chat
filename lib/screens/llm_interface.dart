@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/chat_message.dart';
+import '../controllers/chat_controller.dart';
 import '../widgets/chat_bubble.dart';
-import '../config/app_config.dart';
 
 class LLMInterface extends StatefulWidget {
   const LLMInterface({super.key});
@@ -13,219 +10,201 @@ class LLMInterface extends StatefulWidget {
 }
 
 class LLMInterfaceState extends State<LLMInterface> {
-  final TextEditingController _controller = TextEditingController();
-  final List<ChatMessage> _messages = [];
-  bool _isLoading = false;
-  bool _botStarted = false;
-  String _projectName = '';
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final ChatController _chatController = ChatController();
+
+  bool _useStreamingMode = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final args =
-          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (args != null && args.containsKey('name')) {
-        setState(() {
-          _projectName = args['name'];
-        });
-      }
-      await startBot();
+      await _initializeChat();
+    });
+
+    // Listen to chat controller changes
+    _chatController.addListener(() {
+      _scrollToBottom();
     });
   }
 
-  Future<void> startBot() async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/start_bot'),
-      );
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    _chatController.dispose();
+    super.dispose();
+  }
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'success') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Der Bot wurde erfolgreich gestartet!'),
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-              ),
-            );
-            setState(() {
-              _botStarted = true;
-            });
-          }
-        } else {
-          throw Exception('Failed to start bot: ${data['message']}');
-        }
-      } else {
-        throw Exception('Failed to start bot: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Starten des Bots: $e'),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-          ),
+  Future<void> _initializeChat() async {
+    // Get project name from route arguments
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('name')) {
+      _chatController.setProjectName(args['name']);
+    }
+
+    // Start bot
+    final error = await _chatController.startBot();
+    if (error != null && mounted) {
+      _showSnackBar(error, isError: true);
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
         );
       }
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.secondary,
+      ),
+    );
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) return;
+
+    _textController.clear();
+
+    String? error;
+    if (_useStreamingMode) {
+      error = await _chatController.sendStreamingMessage(text);
+    } else {
+      error = await _chatController.sendRegularMessage(text);
+    }
+
+    if (error != null && mounted) {
+      _showSnackBar(error, isError: true);
     }
   }
 
-  Future<void> sendMessage() async {
-    if (!_botStarted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Bot wurde noch nicht gestartet!'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-      );
-      return;
-    }
-
-    final prompt = _controller.text.trim();
-    if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Bitte gib einen Prompt ein!'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-      );
-      return;
-    }
-
+  void _toggleMode() {
     setState(() {
-      _isLoading = true;
-      _controller.clear();
-      _messages.add(ChatMessage(text: prompt, isUserMessage: true));
+      _useStreamingMode = !_useStreamingMode;
     });
-
-    try {
-      final uri = Uri.parse('${AppConfig.apiBaseUrl}/send_message');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['user_input'] = prompt
-        ..fields['namespace'] =
-            _projectName.isNotEmpty ? _projectName : 'default';
-
-      final streamedResponse = await request.send();
-      final responseData = await streamedResponse.stream.bytesToString();
-
-      debugPrint('Serverantwort: $responseData');
-
-      if (streamedResponse.statusCode == 200) {
-        try {
-          final jsonResponse = json.decode(responseData);
-          final responseText = jsonResponse['response'] as String?;
-
-          if (responseText != null) {
-            setState(() {
-              _messages.add(
-                ChatMessage(text: responseText, isUserMessage: false),
-              );
-            });
-          } else {
-            setState(() {
-              _messages.add(
-                ChatMessage(
-                  text: "Keine Antwort erhalten. Serverantwort: $jsonResponse",
-                  isUserMessage: false,
-                ),
-              );
-            });
-          }
-        } catch (jsonError) {
-          setState(() {
-            _messages.add(
-              ChatMessage(
-                text: "Fehler bei der Verarbeitung der Antwort: $jsonError",
-                isUserMessage: false,
-              ),
-            );
-          });
-        }
-      } else if (streamedResponse.statusCode == 422) {
-        try {
-          final jsonResponse = json.decode(responseData);
-          final errorMessage = jsonResponse['message'] as String?;
-          setState(() {
-            _messages.add(
-              ChatMessage(
-                text: "Fehler: ${errorMessage ?? 'Ungültige Anfrage'}",
-                isUserMessage: false,
-              ),
-            );
-          });
-        } catch (jsonError) {
-          setState(() {
-            _messages.add(
-              ChatMessage(
-                text: "Fehler bei der Verarbeitung der Fehlermeldung",
-                isUserMessage: false,
-              ),
-            );
-          });
-        }
-      } else if (streamedResponse.statusCode == 401) {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: "Invalid API Key, or no credits",
-              isUserMessage: false,
-            ),
-          );
-        });
-      } else {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: 'Fehler: ${streamedResponse.statusCode}',
-              isUserMessage: false,
-            ),
-          );
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _messages.add(ChatMessage(text: 'Fehler: $e', isUserMessage: false));
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    _showSnackBar(
+      _useStreamingMode
+          ? 'Streaming-Modus aktiviert'
+          : 'Normaler Modus aktiviert',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_projectName.isNotEmpty ? _projectName : 'LLM Chat'),
+        title: Text(
+          _chatController.projectName.isNotEmpty
+              ? _chatController.projectName
+              : 'LLM Chat',
+        ),
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'toggle_mode':
+                  _toggleMode();
+                  break;
+                case 'clear_chat':
+                  _chatController.clearMessages();
+                  break;
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 'toggle_mode',
+                    child: Text(
+                      _useStreamingMode ? 'Normaler Modus' : 'Streaming Modus',
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'clear_chat',
+                    child: Text('Chat leeren'),
+                  ),
+                ],
+          ),
+        ],
       ),
       body: Container(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  return ChatBubble(message: _messages[index]);
+              child: AnimatedBuilder(
+                animation: _chatController,
+                builder: (context, child) {
+                  return ListView.builder(
+                    controller: _scrollController,
+                    itemCount: _chatController.messages.length,
+                    itemBuilder: (context, index) {
+                      return ChatBubble(
+                        message: _chatController.messages[index],
+                      );
+                    },
+                  );
                 },
               ),
             ),
-            if (_isLoading)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: CircularProgressIndicator(),
-              ),
+            AnimatedBuilder(
+              animation: _chatController,
+              builder: (context, child) {
+                if (_chatController.isLoading) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Bot tippt...',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: _controller,
+                      controller: _textController,
+                      enabled: !_chatController.isLoading,
                       decoration: InputDecoration(
                         hintText: 'Schreibe eine Nachricht...',
                         border: OutlineInputBorder(
@@ -236,13 +215,20 @@ class LLMInterfaceState extends State<LLMInterface> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(width: 2),
                         ),
+                        suffixIcon:
+                            _useStreamingMode
+                                ? const Icon(Icons.flash_on, size: 16)
+                                : const Icon(Icons.flash_off, size: 16),
                       ),
                       maxLines: 1,
-                      onSubmitted: (_) => sendMessage(),
+                      onSubmitted: (_) => _sendMessage(),
                       textInputAction: TextInputAction.send,
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.send), onPressed: sendMessage),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _chatController.isLoading ? null : _sendMessage,
+                  ),
                 ],
               ),
             ),
