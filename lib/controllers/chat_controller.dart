@@ -9,7 +9,7 @@ class ChatController extends ChangeNotifier {
 
   final List<ChatMessage> _messages = [
     ChatMessage(
-      text: 'Stelle eine Frage oder schreibe eine Nachricht...',
+      text: 'Stelle eine Frage oder schreibe eine Nachricht.',
       isUserMessage: false,
       isStreaming: false,
     ),
