@@ -30,7 +30,7 @@ class ChatBubble extends StatelessWidget {
           children: [
             RichText(
               text: TextSpan(
-                text: message.text,
+                children: _parseFormattedText(message.text),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -71,6 +71,41 @@ class ChatBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<TextSpan> _parseFormattedText(String text) {
+    List<TextSpan> spans = [];
+    final regex = RegExp(r'\*\*(.*?)\*\*');
+    int lastIndex = 0;
+
+    for (final match in regex.allMatches(text)) {
+      // Add normal text before the bold text
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
+      }
+
+      // Add bold text (without the ** markers)
+      spans.add(
+        TextSpan(
+          text: match.group(1) ?? '',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Add remaining normal text after the last bold text
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(lastIndex)));
+    }
+
+    // If no bold text was found, return the original text
+    if (spans.isEmpty) {
+      spans.add(TextSpan(text: text));
+    }
+
+    return spans;
   }
 
   String _formatTime(DateTime dateTime) {

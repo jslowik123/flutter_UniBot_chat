@@ -7,7 +7,14 @@ class ChatController extends ChangeNotifier {
   final ChatService _chatService = ChatService();
   final StreamingService _streamingService = StreamingService();
 
-  final List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [
+    ChatMessage(
+      text: 'Stelle eine Frage oder schreibe eine Nachricht...',
+      isUserMessage: false,
+      isStreaming: false,
+    ),
+  ];
+
   bool _isLoading = false;
   bool _botStarted = false;
   String _projectName = '';
@@ -31,6 +38,8 @@ class ChatController extends ChangeNotifier {
       if (success) {
         _botStarted = true;
         notifyListeners();
+        
+        
         return null; // Kein Fehler
       } else {
         return 'Bot konnte nicht gestartet werden';

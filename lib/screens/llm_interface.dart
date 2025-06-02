@@ -14,8 +14,6 @@ class LLMInterfaceState extends State<LLMInterface> {
   final ScrollController _scrollController = ScrollController();
   final ChatController _chatController = ChatController();
 
-  bool _useStreamingMode = true;
-
   @override
   void initState() {
     super.initState();
@@ -82,27 +80,11 @@ class LLMInterfaceState extends State<LLMInterface> {
 
     _textController.clear();
 
-    String? error;
-    if (_useStreamingMode) {
-      error = await _chatController.sendStreamingMessage(text);
-    } else {
-      error = await _chatController.sendRegularMessage(text);
-    }
+    final error = await _chatController.sendStreamingMessage(text);
 
     if (error != null && mounted) {
       _showSnackBar(error, isError: true);
     }
-  }
-
-  void _toggleMode() {
-    setState(() {
-      _useStreamingMode = !_useStreamingMode;
-    });
-    _showSnackBar(
-      _useStreamingMode
-          ? 'Streaming-Modus aktiviert'
-          : 'Normaler Modus aktiviert',
-    );
   }
 
   @override
@@ -119,9 +101,6 @@ class LLMInterfaceState extends State<LLMInterface> {
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
-                case 'toggle_mode':
-                  _toggleMode();
-                  break;
                 case 'clear_chat':
                   _chatController.clearMessages();
                   break;
@@ -129,12 +108,6 @@ class LLMInterfaceState extends State<LLMInterface> {
             },
             itemBuilder:
                 (context) => [
-                  PopupMenuItem(
-                    value: 'toggle_mode',
-                    child: Text(
-                      _useStreamingMode ? 'Normaler Modus' : 'Streaming Modus',
-                    ),
-                  ),
                   const PopupMenuItem(
                     value: 'clear_chat',
                     child: Text('Chat leeren'),
@@ -215,10 +188,6 @@ class LLMInterfaceState extends State<LLMInterface> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(width: 2),
                         ),
-                        suffixIcon:
-                            _useStreamingMode
-                                ? const Icon(Icons.flash_on, size: 16)
-                                : const Icon(Icons.flash_off, size: 16),
                       ),
                       maxLines: 1,
                       onSubmitted: (_) => _sendMessage(),
