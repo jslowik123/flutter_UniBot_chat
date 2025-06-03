@@ -116,7 +116,7 @@ class LLMInterfaceState extends State<LLMInterface> {
           ),
         ],
       ),
-      body: Container(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -181,13 +181,14 @@ class LLMInterfaceState extends State<LLMInterface> {
                       decoration: InputDecoration(
                         hintText: 'Schreibe eine Nachricht...',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(width: 2),
                         ),
+                        suffixIcon: Icon(Icons.lightbulb_outline, color: Theme.of(context).colorScheme.secondary,),
                       ),
                       maxLines: 1,
                       onSubmitted: (_) => _sendMessage(),

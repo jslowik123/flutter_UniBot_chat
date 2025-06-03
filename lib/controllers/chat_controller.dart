@@ -90,8 +90,8 @@ class ChatController extends ChangeNotifier {
     addUserMessage(userInput);
 
     // Leere Bot-Message für Streaming hinzufügen
-    final botMessageIndex = _messages.length;
     addBotMessage('', isStreaming: true);
+    final botMessageIndex = _messages.length - 1;
 
     try {
       final streamedResponse = await _chatService.createStreamRequest(
@@ -155,6 +155,14 @@ class ChatController extends ChangeNotifier {
   /// Löscht alle Nachrichten
   void clearMessages() {
     _messages.clear();
+    // Begrüßungsnachricht wieder hinzufügen
+    _messages.add(
+      ChatMessage(
+        text: 'Stelle eine Frage oder schreibe eine Nachricht.',
+        isUserMessage: false,
+        isStreaming: false,
+      ),
+    );
     notifyListeners();
   }
 }
