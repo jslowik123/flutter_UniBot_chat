@@ -64,7 +64,7 @@ class LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Projekte'), actions: []),
+      appBar: AppBar(title: const Text('Chatbots'), actions: []),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
