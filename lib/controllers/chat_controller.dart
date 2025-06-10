@@ -142,12 +142,32 @@ class ChatController extends ChangeNotifier {
           // Akkumuliere die einzelnen Chunks hier
           _accumulatedContent += content;
           
-          // Gesamten Text jedes Mal parsen und prüfen
+          // Prüfe ob der akkumulierte Content bereits eine Fehlermeldung enthält
+          if (_isServerErrorMessage(_accumulatedContent)) {
+            // Server-Fehlermeldung direkt anzeigen und Streaming stoppen
+            updateMessage(botMessageIndex, _accumulatedContent, isStreaming: false);
+            _lastAnswer = _accumulatedContent;
+            _lastSource = null;
+            _lastDocumentId = null;
+            return;
+          }
+          
+          // Normale Verarbeitung für gültige Chunks
           _processAccumulatedContent(botMessageIndex);
 
         },
         (fullResponse) {
-          // Finale Antwort - einfach den akkumulierten Content verwenden
+          // Finale Antwort - prüfe erst auf Server-Fehler
+          if (_isServerErrorMessage(fullResponse)) {
+            // Server-Fehlermeldung direkt anzeigen
+            updateMessage(botMessageIndex, fullResponse, isStreaming: false);
+            _lastAnswer = fullResponse;
+            _lastSource = null;
+            _lastDocumentId = null;
+            return;
+          }
+          
+          // Normale Verarbeitung für gültige Antworten
           _accumulatedContent = fullResponse;
           _processAccumulatedContent(botMessageIndex);
           updateMessage(botMessageIndex, _lastParsedContent, isStreaming: false, source: _lastSource, documentId: _lastDocumentId);
@@ -206,7 +226,55 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  /// Prüft, ob die Response eine Server-Fehlermeldung ist
+  bool _isServerErrorMessage(String response) {
+    final trimmedResponse = response.trim();
+    
+    // Typische Server-Fehlermeldungen erkennen
+    final errorPatterns = [
+      'Entschuldigung, es ist ein Fehler aufgetreten',
+      'Ein Fehler ist aufgetreten',
+      'Internal Server Error',
+      'Service Unavailable',
+      'Bad Gateway',
+      'Gateway Timeout',
+      'Server Error',
+      'Temporarily Unavailable',
+      'Try again later',
+      'versuchen Sie es später erneut',
+    ];
+    
+    // Prüfe auf typische Fehlermuster
+    for (String pattern in errorPatterns) {
+      if (trimmedResponse.toLowerCase().contains(pattern.toLowerCase())) {
+        return true;
+      }
+    }
+    
+    // Prüfe ob es eine kurze Nachricht ohne JSON-Struktur ist
+    // und keine typischen JSON-Zeichen enthält
+    if (trimmedResponse.length < 200 && 
+        !trimmedResponse.contains('{') && 
+        !trimmedResponse.contains('"answer"') &&
+        !trimmedResponse.contains('"source"') &&
+        !trimmedResponse.contains('"document_id"')) {
+      return true;
+    }
+    
+    return false;
+  }
+
   void parseResponse(String response) {
+    // Erst prüfen, ob es sich um eine Server-Fehlermeldung handelt
+    if (_isServerErrorMessage(response)) {
+      print('Server-Fehlermeldung erkannt: $response');
+      _lastAnswer = response; // Zeige die Fehlermeldung direkt an
+      _lastSource = null;
+      _lastDocumentId = null;
+      notifyListeners();
+      return;
+    }
+    
     try {
       // Versuche JSON zu parsen
       final Map<String, dynamic> parsedData = json.decode(response);

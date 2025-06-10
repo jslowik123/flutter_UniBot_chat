@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'open_pdf_button.dart';
 
 class CitationCard extends StatelessWidget {
   final String? source;
   final String? documentId;
+  final String? projectName;
 
   const CitationCard({
     super.key,
     this.source,
     this.documentId,
+    this.projectName,
   });
+
 
   @override
   Widget build(BuildContext context) {
@@ -70,14 +74,7 @@ class CitationCard extends StatelessWidget {
                   color: Colors.grey[600],
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  'ID: $documentId',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    fontFamily: 'monospace',
-                  ),
-                ),
+                OpenPdfButton(projectName: projectName, documentId: documentId)
               ],
             ),
           ],
