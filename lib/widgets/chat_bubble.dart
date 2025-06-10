@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
+import 'citation_card.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -37,7 +38,7 @@ class ChatBubble extends StatelessWidget {
                 children: [
                   RichText(
                     text: TextSpan(
-                      children: _parseFormattedText(message.text),
+                      children: _parseFormattedTextForBold(message.text),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -77,13 +78,23 @@ class ChatBubble extends StatelessWidget {
                 ],
               ),
             ),
+            
+            // Citation Card - nur anzeigen wenn source oder documentId vorhanden
+            if (message.source != null || message.documentId != null) ...[
+              const SizedBox(height: 8),
+              CitationCard(
+                source: message.source,
+                documentId: message.documentId,
+              ),
+            ],
+           
           ],
         ),
       ),
     );
   }
 
-  List<TextSpan> _parseFormattedText(String text) {
+  List<TextSpan> _parseFormattedTextForBold(String text) {
     final List<TextSpan> spans = [];
     final RegExp boldPattern = RegExp(r'\*\*(.*?)\*\*');
     final RegExp italicPattern = RegExp(r'\*(.*?)\*');
@@ -130,9 +141,5 @@ class ChatBubble extends StatelessWidget {
     }
     
     return spans;
-  }
-
-  String _formatTime(DateTime dateTime) {
-    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
   }
 }

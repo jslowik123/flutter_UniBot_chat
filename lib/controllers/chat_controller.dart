@@ -3,7 +3,6 @@ import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../services/streaming_service.dart';
 import 'dart:convert';
-import 'dart:math';
 
 class ChatController extends ChangeNotifier {
   final ChatService _chatService = ChatService();
@@ -23,6 +22,10 @@ class ChatController extends ChangeNotifier {
   String? _lastSource;
   String? _lastDocumentId;
   String? _lastAnswer; // Temporärer Speicher für answer
+  String _accumulatedContent = ''; // Akkumulierter Content für Parsing
+  String _lastPrintedContent = ''; // Letzter geprinter Content für Debugging
+  String _lastParsedContent = ''; 
+  String _fullResponse = '';// Letzter geparster Content für Debugging
 
   // Getters
   List<ChatMessage> get messages => List.unmodifiable(_messages);
@@ -91,6 +94,20 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  /// Simple Chunk-Verarbeitung: Prüft Kriterien und updated Message
+  void _processAccumulatedContent(int messageIndex) {
+    // HIER DEINE KRITERIEN DEFINIEREN:
+    //if (_accumulatedContent.contains('{ "answer" :') ) {
+    print(_accumulatedContent);
+    if (_accumulatedContent.contains(':')) {
+      List<String> parts = _accumulatedContent.split("\"");
+      //print(parts);
+      _lastParsedContent = parts[3];
+    } else {
+      _lastParsedContent = "";
+    }
+  }
+
   /// Sendet eine Nachricht mit Streaming
   Future<String?> sendStreamingMessage(String userInput) async {
     if (!_botStarted) {
@@ -108,6 +125,10 @@ class ChatController extends ChangeNotifier {
     // Leere Bot-Message für Streaming hinzufügen
     addBotMessage('', isStreaming: true);
     final botMessageIndex = _messages.length - 1;
+    
+    // Content-Akkumulator zurücksetzen
+    _accumulatedContent = '';
+    _lastPrintedContent = '';
 
     try {
       final streamedResponse = await _chatService.createStreamRequest(
@@ -118,35 +139,31 @@ class ChatController extends ChangeNotifier {
       await _streamingService.processStreamingResponse(
         streamedResponse,
         (content) {
-          // Chunk erhalten - Sicherheitscheck für JSON-Content
-          final cleanedContent = _extractAnswerFromContent(content);
-          // Speichere den aktuellen answer-Text temporär
-          _lastAnswer = cleanedContent;
-          updateMessage(botMessageIndex, cleanedContent, isStreaming: true, source: _lastSource, documentId: _lastDocumentId);
+          // Akkumuliere die einzelnen Chunks hier
+          _accumulatedContent += content;
+          
+          // Gesamten Text jedes Mal parsen und prüfen
+          _processAccumulatedContent(botMessageIndex);
+
         },
         (fullResponse) {
-          // Vollständige Antwort - Sicherheitscheck für JSON-Content
-          final cleanedResponse = _extractAnswerFromContent(fullResponse);
-          // Speichere die finale Antwort temporär
-          _lastAnswer = cleanedResponse;
-          updateMessage(botMessageIndex, cleanedResponse, isStreaming: false, source: _lastSource, documentId: _lastDocumentId);
+          // Finale Antwort - einfach den akkumulierten Content verwenden
+          _accumulatedContent = fullResponse;
+          _processAccumulatedContent(botMessageIndex);
+          updateMessage(botMessageIndex, _lastParsedContent, isStreaming: false, source: _lastSource, documentId: _lastDocumentId);
+          _lastAnswer = _lastParsedContent;
+          _fullResponse = fullResponse;
+          parseResponse(_fullResponse); 
+          updateMessage(botMessageIndex, _lastParsedContent, isStreaming: false, source: _lastSource, documentId: _lastDocumentId);
         },
         (error) {
           // Fehler - Lösche temporäre Speicher
           _lastAnswer = null;
           _lastSource = null;
           _lastDocumentId = null;
+          _accumulatedContent = '';
+          _lastPrintedContent = '';
           updateMessage(botMessageIndex, 'Fehler: $error', isStreaming: false);
-        },
-        onSource: (source) {
-          // Source erhalten und speichern
-          _lastSource = source;
-          notifyListeners(); // UI über Source-Update informieren
-        },
-        onDocumentId: (documentId) {
-          // document_id erhalten und speichern
-          _lastDocumentId = documentId;
-          notifyListeners(); // UI über document_id-Update informieren
         },
       );
 
@@ -156,63 +173,10 @@ class ChatController extends ChangeNotifier {
       return 'Streaming-Fehler: $e';
     } finally {
       _isLoading = false;
+      _accumulatedContent = '';
+      _lastPrintedContent = '';
       notifyListeners();
     }
-  }
-
-  /// Extrahiert den Answer-Text aus Content, falls es JSON ist
-  String _extractAnswerFromContent(String content) {
-    // Überprüfe, ob der Content JSON-artige Strukturen enthält
-    if (content.contains('{') || content.contains('"answer"') || content.contains('"source"') || content.contains('"document_id"') || content.contains('json')) {
-      
-      // Versuche zuerst vollständiges JSON zu parsen
-      if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
-        try {
-          final data = json.decode(content);
-          if (data is Map<String, dynamic> && data.containsKey('answer')) {
-            final answerText = data['answer']?.toString() ?? '';
-            return answerText;
-          }
-        } catch (e) {
-          // Ignoriere den Fehler und gehe zum robusten Text-Extraktions-Verfahren
-        }
-      }
-      
-      // Robuste Text-Extraktion für Streaming-Chunks
-      String cleanedContent = content;
-      
-      // Schritt 1: Entferne vollständige JSON-Strukturen wenn erkennbar
-      if (cleanedContent.contains('"answer"')) {
-        // Extrahiere Text zwischen "answer": " und dem nächsten "
-        final answerMatch = RegExp(r'"answer"\s*:\s*"([^"]*)"').firstMatch(cleanedContent);
-        if (answerMatch != null) {
-          cleanedContent = answerMatch.group(1) ?? '';
-          return cleanedContent;
-        }
-      }
-      
-      // Schritt 2: Aggressive Bereinigung für Streaming-Chunks
-      // Entferne "json" Marker am Anfang
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'^\s*```?\s*json\s*?\s*', caseSensitive: false), ''); // ```json```
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'^\s*json\s*', caseSensitive: false), ''); // "json" am Anfang
-      
-      // Entferne alle JSON-Syntax-Elemente
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'\{'), ''); // Alle {
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'\}'), ''); // Alle }
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'"answer"\s*:\s*'), ''); // "answer":
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'"source"\s*:\s*"[^"]*"\s*,?\s*'), ''); // "source": "..."
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'"document_id"\s*:\s*"[^"]*"\s*,?\s*'), ''); // "document_id": "..."
-      cleanedContent = cleanedContent.replaceAll(RegExp(r',\s*"[^"]*"\s*:\s*"[^"]*"'), ''); // weitere JSON-Felder
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'^[",\s]+'), ''); // Anführungszeichen/Kommata am Anfang
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'[",\s]+$'), ''); // Anführungszeichen/Kommata am Ende
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'^\s*"'), ''); // Anführungszeichen am absoluten Anfang
-      cleanedContent = cleanedContent.replaceAll(RegExp(r'"\s*$'), ''); // Anführungszeichen am absoluten Ende
-      
-      return cleanedContent;
-    }
-    
-    // Wenn es kein JSON ist, zeige es normal an
-    return content;
   }
 
   /// Sendet eine Nachricht ohne Streaming (Fallback)
@@ -242,6 +206,88 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  void parseResponse(String response) {
+    try {
+      // Versuche JSON zu parsen
+      final Map<String, dynamic> parsedData = json.decode(response);
+      
+      // Extrahiere die Felder
+      if (parsedData.containsKey('answer')) {
+        _lastAnswer = parsedData['answer']?.toString();
+      }
+      
+      if (parsedData.containsKey('source')) {
+        _lastSource = parsedData['source']?.toString();
+      }
+      
+      if (parsedData.containsKey('document_id')) {
+        _lastDocumentId = parsedData['document_id']?.toString();
+      }
+      
+      // Benachrichtige Listener über Änderungen
+      notifyListeners();
+      
+      print('Response parsed successfully:');
+      print('Answer: $_lastAnswer');
+      print('Source: $_lastSource');
+      print('Document ID: $_lastDocumentId');
+      
+    } catch (e) {
+      print('Fehler beim Parsen der Response: $e');
+      print('Response content: $response');
+      
+      // Fallback: Versuche einfachen Text-Parsing falls JSON fehlschlägt
+      _trySimpleTextParsing(response);
+      
+    }
+  }
+  
+  /// Fallback-Methode für einfaches Text-Parsing
+  void _trySimpleTextParsing(String response) {
+    try {
+      // Suche nach answer, source und document_id in der Response
+      final lines = response.split('\n');
+      
+      for (String line in lines) {
+        final trimmedLine = line.trim();
+        
+        if (trimmedLine.contains('"answer"')) {
+          final colonIndex = trimmedLine.indexOf(':');
+          if (colonIndex != -1) {
+            String answerPart = trimmedLine.substring(colonIndex + 1).trim();
+            // Entferne Anführungszeichen und Kommas
+            answerPart = answerPart.replaceAll(RegExp(r'^"|"$|,$'), '');
+            _lastAnswer = answerPart;
+          }
+        }
+        
+        if (trimmedLine.contains('"source"')) {
+          final colonIndex = trimmedLine.indexOf(':');
+          if (colonIndex != -1) {
+            String sourcePart = trimmedLine.substring(colonIndex + 1).trim();
+            sourcePart = sourcePart.replaceAll(RegExp(r'^"|"$|,$'), '');
+            _lastSource = sourcePart;
+          }
+        }
+        
+        if (trimmedLine.contains('"document_id"')) {
+          final colonIndex = trimmedLine.indexOf(':');
+          if (colonIndex != -1) {
+            String docIdPart = trimmedLine.substring(colonIndex + 1).trim();
+            docIdPart = docIdPart.replaceAll(RegExp(r'^"|"$|,$'), '');
+            _lastDocumentId = docIdPart;
+          }
+        }
+      }
+      
+      notifyListeners();
+      print('Simple text parsing completed');
+      
+    } catch (e) {
+      print('Auch einfaches Text-Parsing fehlgeschlagen: $e');
+    }
+  }
+
   /// Löscht alle Nachrichten
   void clearMessages() {
     _messages.clear();
@@ -257,6 +303,8 @@ class ChatController extends ChangeNotifier {
     _lastSource = null;
     _lastDocumentId = null;
     _lastAnswer = null;
+    _accumulatedContent = '';
+    _lastPrintedContent = '';
     notifyListeners();
   }
 
