@@ -4,8 +4,9 @@ import 'citation_card.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
+  final String? projectName;
 
-  const ChatBubble({super.key, required this.message});
+  const ChatBubble({super.key, required this.message, this.projectName});
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +86,7 @@ class ChatBubble extends StatelessWidget {
               CitationCard(
                 source: message.source,
                 documentId: message.documentId,
+                projectName: projectName,
               ),
             ],
            

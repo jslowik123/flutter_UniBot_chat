@@ -130,6 +130,7 @@ class LLMInterfaceState extends State<LLMInterface> {
                     itemBuilder: (context, index) {
                       return ChatBubble(
                         message: _chatController.messages[index],
+                        projectName: _chatController.projectName,
                       );
                     },
                   );

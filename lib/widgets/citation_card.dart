@@ -5,19 +5,23 @@ class CitationCard extends StatelessWidget {
   final String? source;
   final String? documentId;
   final String? projectName;
+  final String? documentName;
 
   const CitationCard({
     super.key,
     this.source,
     this.documentId,
     this.projectName,
+    this.documentName,
   });
 
 
   @override
   Widget build(BuildContext context) {
-    // Falls beide null sind, verstecke die Card
-    if (source == null && documentId == null) {
+
+
+    if (source == "" || documentId == null) {
+      print('📋 Keine Quelle oder Document ID - verstecke CitationCard');
       return const SizedBox.shrink();
     }
 
@@ -74,7 +78,12 @@ class CitationCard extends StatelessWidget {
                   color: Colors.grey[600],
                 ),
                 const SizedBox(width: 4),
-                OpenPdfButton(projectName: projectName, documentId: documentId)
+                Builder(
+                  builder: (context) {
+                    print('📋 Erstelle OpenPdfButton mit projectName: "$projectName", documentId: "$documentId"');
+                    return OpenPdfButton(projectName: projectName, documentId: documentId, documentName: documentName,);
+                  }
+                )
               ],
             ),
           ],

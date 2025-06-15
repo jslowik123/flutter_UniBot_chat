@@ -45,7 +45,6 @@ class StreamingService {
     Function(String documentId)? onDocumentId, // Optional: für document_id
   }) async {
     
-    
     try {
       final stream = streamedResponse.stream.transform(utf8.decoder);
       String accumulatedContent = '';
