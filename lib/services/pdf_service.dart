@@ -121,14 +121,9 @@ class PdfService {
 
   /// Legacy-Methode: Lädt PDF direkt über project/document Pfad (für Rückwärtskompatibilität)
   Future<Uint8List?> downloadPdfFromFirebase(String projectName, String documentID) async {
-    print('🔥 downloadPdfFromFirebase gestartet (Legacy-Methode)');
-    print('🔥 Project Name: "$projectName"');
-    print('🔥 Document ID: "$documentID"');
-    
     try {
       // Referenz zum Firebase Storage Pfad
       final storagePath = "files/$projectName/$documentID";
-      print('🔥 Firebase Storage Pfad: "$storagePath"');
       
       return await _downloadPdfFromStorage(storagePath);
       
@@ -141,24 +136,18 @@ class PdfService {
   /// Lädt das PDF direkt aus Firebase Storage über den Storage-Pfad (Legacy)
   Future<Uint8List?> _downloadPdfFromStorage(String storagePath) async {
     try {
-      print('🔥 Lade PDF aus Storage-Pfad: "$storagePath"');
       
       final storageRef = FirebaseStorage.instance.ref().child(storagePath);
-      print('🔥 Storage Reference erstellt');
       
-      print('🔥 Starte Download (max. 10 MB)...');
       final Uint8List? pdfBytes = await storageRef.getData(10 * 1024 * 1024);
       
       if (pdfBytes == null) {
-        print('❌ Keine Daten empfangen (pdfBytes ist null)');
         return null;
       }
       
-      print('✅ PDF erfolgreich heruntergeladen - Größe: ${pdfBytes.length} bytes');
       return pdfBytes;
       
     } catch (e) {
-      print('❌ Fehler beim Herunterladen des PDFs aus Storage: $e');
       return null;
     }
   }

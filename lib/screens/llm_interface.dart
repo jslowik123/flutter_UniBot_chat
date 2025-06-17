@@ -44,7 +44,14 @@ class LLMInterfaceState extends State<LLMInterface> {
     }
 
     // Start bot
+    setState(() {
+      _chatController.setIsLoading(true);
+    });
     final error = await _chatController.startBot();
+    if (!mounted) return;
+    setState(() {
+      _chatController.setIsLoading(false);
+    });
     if (error != null && mounted) {
       _showSnackBar(error, isError: true);
     }
@@ -80,7 +87,8 @@ class LLMInterfaceState extends State<LLMInterface> {
 
     _textController.clear();
 
-    final error = await _chatController.sendStreamingMessage(text);
+    final error = await _chatController.sendMessage(text);
+    if (!mounted) return;
 
     if (error != null && mounted) {
       _showSnackBar(error, isError: true);

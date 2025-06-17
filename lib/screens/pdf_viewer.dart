@@ -31,10 +31,7 @@ class _PdfViewerState extends State<PdfViewer> {
   }
 
   Future<void> _loadPdfData() async {
-    print('📄 _loadPdfData gestartet');
-    
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    print('📄 Route Arguments: $args');
     
     if (args != null && args['name'] != null && args['id'] != null) {
       final projectName = args['name'] as String;
@@ -48,10 +45,8 @@ class _PdfViewerState extends State<PdfViewer> {
         documentName = 'PDF wird geladen...'; // Temporärer Titel während des Ladens
         isPdfReady = false;
       });
-      print('📄 Loading-State gesetzt');
 
       try {
-        print('📄 Lade PDF-Informationen und Bytes...');
         
         // 1. Erst PDF-Informationen (inkl. Name) laden
         final pdfInfo = await _pdfService.getPdfInfoByDocumentId(projectName, documentId);
@@ -70,31 +65,23 @@ class _PdfViewerState extends State<PdfViewer> {
         setState(() {
           documentName = pdfInfo.name ?? 'Unbenanntes PDF';
         });
-        print('✅ PDF-Name aus Database: "${documentName}"');
         
         // 3. PDF-Bytes herunterladen
-        print('📄 Starte PDF-Download...');
         final bytes = await _pdfService.downloadPdfByDocumentId(projectName, documentId);
-        print('📄 PDF-Download abgeschlossen - Bytes empfangen: ${bytes?.length ?? 0}');
         
         if (bytes != null) {
-          print('📄 PDF-Bytes erfolgreich empfangen, erstelle temporäre Datei...');
           // Save bytes to temporary file for flutter_pdfview
           final tempDir = await getTemporaryDirectory();
-          print('📄 Temp Directory: ${tempDir.path}');
           
           final file = File('${tempDir.path}/$documentId.pdf');
-          print('📄 Temp File Path: ${file.path}');
           
           await file.writeAsBytes(bytes);
-          print('📄 PDF-Datei erfolgreich geschrieben (${bytes.length} bytes)');
           
           setState(() {
             pdfBytes = bytes;
             pdfPath = file.path;
             isLoading = false;
           });
-          print('✅ PDF erfolgreich geladen und State aktualisiert');
         } else {
           print('❌ Keine PDF-Bytes empfangen');
           setState(() {
@@ -177,7 +164,6 @@ class _PdfViewerState extends State<PdfViewer> {
     }
 
     if (pdfPath != null) {
-      print('📄 Rendere PDF-View mit Pfad: $pdfPath');
       return Container(
         color: Colors.grey[200],
         child: PDFView(
@@ -191,7 +177,6 @@ class _PdfViewerState extends State<PdfViewer> {
           fitPolicy: FitPolicy.BOTH,
           preventLinkNavigation: false,
           onRender: (pages) {
-            print('📄 PDF erfolgreich gerendert - Seiten: $pages');
             setState(() {
               totalPages = pages!;
               // Initial currentPage korrekt setzen (1-basiert für Anzeige)
@@ -200,7 +185,6 @@ class _PdfViewerState extends State<PdfViewer> {
               }
               isPdfReady = true; // PDF ist jetzt bereit für Navigation
             });
-            print('📄 Total Pages gesetzt: $totalPages, Current Page: $currentPage, PDF Ready: $isPdfReady');
           },
           onError: (error) {
             print('❌ PDF Render-Fehler: $error');
@@ -214,8 +198,7 @@ class _PdfViewerState extends State<PdfViewer> {
               errorMessage = 'Seite $page Fehler: $error';
             });
           },
-          onViewCreated: (PDFViewController pdfViewController) {
-            print('📄 PDF View Controller erstellt');
+          onViewCreated: (PDFViewController pdfViewController) {  
             _pdfViewController = pdfViewController;
             
             // Kleine Verzögerung, um sicherzustellen, dass alles initialisiert ist
@@ -228,11 +211,10 @@ class _PdfViewerState extends State<PdfViewer> {
             });
           },
           onLinkHandler: (String? uri) {
-            print('📄 PDF Link geklickt: $uri');
             // Handle link clicks
           },
           onPageChanged: (int? page, int? total) {
-            print('📄 Seite geändert: ${page! + 1} von $total');
+          print('📄 Seite geändert: ${page! + 1} von $total');
             setState(() {
               currentPage = page + 1;
               totalPages = total!;
