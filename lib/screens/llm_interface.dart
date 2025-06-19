@@ -106,21 +106,11 @@ class LLMInterfaceState extends State<LLMInterface> {
         ),
         elevation: 0,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'clear_chat':
-                  _chatController.clearMessages();
-                  break;
-              }
+          IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              _chatController.clearMessages();
             },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'clear_chat',
-                    child: Text('Chat leeren'),
-                  ),
-                ],
           ),
         ],
       ),

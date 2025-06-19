@@ -40,11 +40,15 @@ class ChatService {
       final streamedResponse = await request.send();
       final responseData = await streamedResponse.stream.bytesToString();
 
+      print('--- DEBUG: HTTP-Response-Body ---');
+      print(responseData);
+
       if (streamedResponse.statusCode == 200) {
-        
         try {
           final jsonResponse = json.decode(responseData);
-          
+          print('--- DEBUG: Geparstes JSON ---');
+          print(jsonResponse);
+
           // Extrahiere die Response-Felder
           final result = <String, dynamic>{};
           
@@ -60,20 +64,45 @@ class ChatService {
             result['document_id'] = jsonResponse['document_id']?.toString();
           }
           
-          // Fallback auf 'response' falls 'answer' nicht vorhanden
-          if (!result.containsKey('answer') && jsonResponse.containsKey('response')) {
-            result['answer'] = jsonResponse['response']?.toString();
+          // Fallback: Wenn 'response' ein verschachteltes JSON ist
+          if (jsonResponse.containsKey('response')) {
+            final responseField = jsonResponse['response'];
+            if (responseField is String) {
+              try {
+                final innerJson = json.decode(responseField);
+                if (innerJson is Map<String, dynamic>) {
+                  if (innerJson.containsKey('answer')) {
+                    result['answer'] = innerJson['answer']?.toString();
+                  }
+                  if (innerJson.containsKey('source')) {
+                    result['source'] = innerJson['source']?.toString();
+                  }
+                  if (innerJson.containsKey('document_id')) {
+                    result['document_id'] = innerJson['document_id']?.toString();
+                  }
+                }
+              } catch (e) {
+                // ignore, fallback bleibt
+              }
+            }
           }
           
+          print('--- DEBUG: Extrahierte Felder ---');
+          print('answer: ${result['answer']}');
+          print('source: ${result['source']}');
+          print('document_id: ${result['document_id']}');
+
           return result;
         } catch (e) {
+          print('--- DEBUG: JSON-Parsing-Fehler ---');
+          print(e);
           // Falls JSON-Parsing fehlschlägt, gib die rohe Response als answer zurück
           return {'answer': responseData};
         }
       } else if (streamedResponse.statusCode == 422) {
         final jsonResponse = json.decode(responseData);
         final errorMessage = jsonResponse['message'] as String?;
-        throw Exception("Fehler: ${errorMessage ?? 'Ungültige Anfrage'}");
+        throw Exception("Fehler: [31m${errorMessage ?? 'Ungültige Anfrage'}[0m");
       } else if (streamedResponse.statusCode == 401) {
         throw Exception("Invalid API Key, or no credits");
       } else {
