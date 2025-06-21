@@ -3,7 +3,7 @@ class ChatMessage {
   final bool isUserMessage;
   final DateTime timestamp;
   final String? source;
-  final String? documentId;
+  final List<String>? documentIds;
   final bool isTyping;
 
   ChatMessage({
@@ -11,7 +11,7 @@ class ChatMessage {
     required this.isUserMessage,
     DateTime? timestamp,
     this.source,
-    this.documentId,
+    this.documentIds,
     this.isTyping = false,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -21,7 +21,7 @@ class ChatMessage {
     bool? isUserMessage,
     DateTime? timestamp,
     String? source,
-    String? documentId,
+    List<String>? documentIds,
     bool? isTyping,
   }) {
     return ChatMessage(
@@ -29,7 +29,7 @@ class ChatMessage {
       isUserMessage: isUserMessage ?? this.isUserMessage,
       timestamp: timestamp ?? this.timestamp,
       source: source ?? this.source,
-      documentId: documentId ?? this.documentId,
+      documentIds: documentIds ?? this.documentIds,
       isTyping: isTyping ?? this.isTyping,
     );
   }
@@ -40,7 +40,7 @@ class ChatMessage {
       'isUserMessage': isUserMessage,
       'timestamp': timestamp.toIso8601String(),
       'source': source,
-      'documentId': documentId,
+      'documentIds': documentIds,
       'isTyping': isTyping,
     };
   }
@@ -51,7 +51,10 @@ class ChatMessage {
       isUserMessage: json['isUserMessage'] as bool,
       timestamp: DateTime.parse(json['timestamp'] as String),
       source: json['source'] as String?,
-      documentId: json['documentId'] as String?,
+      documentIds:
+          json['documentIds'] != null
+              ? List<String>.from(json['documentIds'] as List)
+              : null,
       isTyping: json['isTyping'] as bool? ?? false,
     );
   }

@@ -16,7 +16,7 @@ class ChatController extends ChangeNotifier {
   bool _botStarted = false;
   String _projectName = '';
   String? _lastSource;
-  String? _lastDocumentId;
+  List<String>? _lastDocumentIds;
   String? _lastAnswer;
 
   // Getters
@@ -25,7 +25,7 @@ class ChatController extends ChangeNotifier {
   bool get botStarted => _botStarted;
   String get projectName => _projectName;
   String? get lastSource => _lastSource;
-  String? get lastDocumentId => _lastDocumentId;
+  List<String>? get lastDocumentIds => _lastDocumentIds;
   String? get lastAnswer => _lastAnswer;
 
   // Setters
@@ -62,26 +62,31 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Fügt eine Bot-Message hinzu
-  void addBotMessage(String text, {String? source, String? documentId}) {
+  void addBotMessage(String text, {String? source, List<String>? documentIds}) {
     _messages.add(
       ChatMessage(
-        text: text, 
-        isUserMessage: false, 
+        text: text,
+        isUserMessage: false,
         source: source,
-        documentId: documentId,
+        documentIds: documentIds,
       ),
     );
     notifyListeners();
   }
 
   /// Aktualisiert eine bestehende Message
-  void updateMessage(int index, String text, {String? source, String? documentId}) {
+  void updateMessage(
+    int index,
+    String text, {
+    String? source,
+    List<String>? documentIds,
+  }) {
     if (index >= 0 && index < _messages.length) {
       _messages[index] = ChatMessage(
         text: text,
         isUserMessage: _messages[index].isUserMessage,
         source: source ?? _messages[index].source,
-        documentId: documentId ?? _messages[index].documentId,
+        documentIds: documentIds ?? _messages[index].documentIds,
       );
       notifyListeners();
     }
@@ -106,23 +111,23 @@ class ChatController extends ChangeNotifier {
 
     try {
       final response = await _chatService.sendMessage(userInput, _projectName);
-      
+
       // Extrahiere die Felder aus der Response
       final answer = response['answer'] ?? 'Keine Antwort erhalten';
       final source = response['source'];
-      final documentId = response['document_id'];
-      
+      final documentIds = response['document_ids'] as List<String>?;
+
       // Speichere die Werte für späteren Zugriff
       _lastAnswer = answer;
       _lastSource = source;
-      _lastDocumentId = documentId;
-      
+      _lastDocumentIds = documentIds;
+
       // Ersetze die Typing-Nachricht durch die echte Antwort
       _messages[typingIndex] = ChatMessage(
         text: answer,
         isUserMessage: false,
         source: source,
-        documentId: documentId,
+        documentIds: documentIds,
       );
       notifyListeners();
       return null; // Kein Fehler
@@ -152,17 +157,17 @@ class ChatController extends ChangeNotifier {
     );
     // Lösche temporäre Speicher
     _lastSource = null;
-    _lastDocumentId = null;
+    _lastDocumentIds = null;
     _lastAnswer = null;
     notifyListeners();
   }
 
   /// Hilfsmethode: Gibt alle temporär gespeicherten Werte zurück
-  Map<String, String?> getTemporaryStorage() {
+  Map<String, dynamic> getTemporaryStorage() {
     return {
       'answer': _lastAnswer,
       'source': _lastSource,
-      'documentId': _lastDocumentId,
+      'documentIds': _lastDocumentIds,
     };
   }
 
@@ -170,7 +175,7 @@ class ChatController extends ChangeNotifier {
   void clearTemporaryStorage() {
     _lastAnswer = null;
     _lastSource = null;
-    _lastDocumentId = null;
+    _lastDocumentIds = null;
     notifyListeners();
   }
 }

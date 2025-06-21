@@ -6,6 +6,7 @@
 /// 4. ChatService.sendMessage() macht den HTTP-Request
 /// 5. Antwort wird verarbeitet und als ChatMessage gespeichert
 /// 6. UI zeigt die Nachrichten inkl. animierter Bot-Bubble ("tippt...") an
+library;
 
 import '../services/chat_service.dart';
 import '../models/chat_message.dart';
@@ -25,7 +26,11 @@ class SendMessageProcess {
     // 1. User-Message hinzufügen
     addUserMessage(ChatMessage(text: userInput, isUserMessage: true));
     // 2. Bot-Bubble mit "tippt..." anzeigen
-    final typingMessage = ChatMessage(text: '', isUserMessage: false, isTyping: true);
+    final typingMessage = ChatMessage(
+      text: '',
+      isUserMessage: false,
+      isTyping: true,
+    );
     messages.add(typingMessage);
     final typingIndex = messages.length - 1;
     notifyListeners();
@@ -35,13 +40,13 @@ class SendMessageProcess {
       final response = await chatService.sendMessage(userInput, projectName);
       final answer = response['answer'] ?? 'Keine Antwort erhalten';
       final source = response['source'];
-      final documentId = response['document_id'];
+      final documentIds = response['document_ids'] as List<String>?;
       // 4. Bot-Bubble ersetzen
       messages[typingIndex] = ChatMessage(
         text: answer,
         isUserMessage: false,
         source: source,
-        documentId: documentId,
+        documentIds: documentIds,
       );
       notifyListeners();
     } catch (e) {
@@ -68,4 +73,4 @@ class SendMessageProcess {
 ///   - Antwort kommt zurück → Bot-Bubble wird ersetzt
 ///   - notifyListeners() triggert UI-Update
 /// - ChatBubble zeigt animierte Bubble, solange isTyping == true
-/// - Nach Antwort: normale Bot-Bubble mit Text und ggf. CitationCard 
+/// - Nach Antwort: normale Bot-Bubble mit Text und ggf. CitationCard

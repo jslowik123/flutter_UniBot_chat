@@ -4,7 +4,7 @@ import '../config/app_config.dart';
 
 class ChatService {
   static const String _startBotEndpoint = '/start_bot';
-  static const String _sendMessageEndpoint = '/send_message';
+  static const String _sendMessageEndpoint = '/send_message_structured';
   bool isLoading = false;
 
   /// Startet den Bot auf dem Server
@@ -30,12 +30,17 @@ class ChatService {
   }
 
   /// Sendet eine Nachricht und gibt die komplette Response zurück
-  Future<Map<String, dynamic>> sendMessage(String userInput, String projectName) async {
+  Future<Map<String, dynamic>> sendMessage(
+    String userInput,
+    String projectName,
+  ) async {
     try {
       final uri = Uri.parse('${AppConfig.apiBaseUrl}$_sendMessageEndpoint');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['user_input'] = userInput
-        ..fields['namespace'] = projectName.isNotEmpty ? projectName : 'default';
+      final request =
+          http.MultipartRequest('POST', uri)
+            ..fields['user_input'] = userInput
+            ..fields['namespace'] =
+                projectName.isNotEmpty ? projectName : 'default';
 
       final streamedResponse = await request.send();
       final responseData = await streamedResponse.stream.bytesToString();
@@ -51,19 +56,25 @@ class ChatService {
 
           // Extrahiere die Response-Felder
           final result = <String, dynamic>{};
-          
+
           if (jsonResponse.containsKey('answer')) {
             result['answer'] = jsonResponse['answer']?.toString();
           }
-          
+
           if (jsonResponse.containsKey('source')) {
             result['source'] = jsonResponse['source']?.toString();
           }
-          
+
           if (jsonResponse.containsKey('document_id')) {
-            result['document_id'] = jsonResponse['document_id']?.toString();
+            final documentIdValue = jsonResponse['document_id'];
+            if (documentIdValue is List) {
+              result['document_ids'] =
+                  documentIdValue.map((id) => id.toString()).toList();
+            } else if (documentIdValue != null) {
+              result['document_ids'] = [documentIdValue.toString()];
+            }
           }
-          
+
           // Fallback: Wenn 'response' ein verschachteltes JSON ist
           if (jsonResponse.containsKey('response')) {
             final responseField = jsonResponse['response'];
@@ -78,7 +89,13 @@ class ChatService {
                     result['source'] = innerJson['source']?.toString();
                   }
                   if (innerJson.containsKey('document_id')) {
-                    result['document_id'] = innerJson['document_id']?.toString();
+                    final documentIdValue = innerJson['document_id'];
+                    if (documentIdValue is List) {
+                      result['document_ids'] =
+                          documentIdValue.map((id) => id.toString()).toList();
+                    } else if (documentIdValue != null) {
+                      result['document_ids'] = [documentIdValue.toString()];
+                    }
                   }
                 }
               } catch (e) {
@@ -86,11 +103,11 @@ class ChatService {
               }
             }
           }
-          
+
           print('--- DEBUG: Extrahierte Felder ---');
           print('answer: ${result['answer']}');
           print('source: ${result['source']}');
-          print('document_id: ${result['document_id']}');
+          print('document_ids: ${result['document_ids']}');
 
           return result;
         } catch (e) {
@@ -102,7 +119,9 @@ class ChatService {
       } else if (streamedResponse.statusCode == 422) {
         final jsonResponse = json.decode(responseData);
         final errorMessage = jsonResponse['message'] as String?;
-        throw Exception("Fehler: [31m${errorMessage ?? 'Ungültige Anfrage'}[0m");
+        throw Exception(
+          "Fehler:  [31m${errorMessage ?? 'Ungültige Anfrage'} [0m",
+        );
       } else if (streamedResponse.statusCode == 401) {
         throw Exception("Invalid API Key, or no credits");
       } else {
