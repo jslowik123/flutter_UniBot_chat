@@ -39,13 +39,13 @@ class SendMessageProcess {
       // 3. Anfrage an Backend
       final response = await chatService.sendMessage(userInput, projectName);
       final answer = response['answer'] ?? 'Keine Antwort erhalten';
-      final source = response['source'];
+      final sources = response['sources'] as List<String>?;
       final documentIds = response['document_ids'] as List<String>?;
       // 4. Bot-Bubble ersetzen
       messages[typingIndex] = ChatMessage(
         text: answer,
         isUserMessage: false,
-        source: source,
+        sources: sources,
         documentIds: documentIds,
       );
       notifyListeners();

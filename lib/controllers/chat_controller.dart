@@ -15,7 +15,7 @@ class ChatController extends ChangeNotifier {
   bool _isLoading = false;
   bool _botStarted = false;
   String _projectName = '';
-  String? _lastSource;
+  List<String>? _lastSources;
   List<String>? _lastDocumentIds;
   String? _lastAnswer;
 
@@ -24,7 +24,7 @@ class ChatController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get botStarted => _botStarted;
   String get projectName => _projectName;
-  String? get lastSource => _lastSource;
+  List<String>? get lastSources => _lastSources;
   List<String>? get lastDocumentIds => _lastDocumentIds;
   String? get lastAnswer => _lastAnswer;
 
@@ -62,12 +62,12 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Fügt eine Bot-Message hinzu
-  void addBotMessage(String text, {String? source, List<String>? documentIds}) {
+  void addBotMessage(String text, {List<String>? sources, List<String>? documentIds}) {
     _messages.add(
       ChatMessage(
         text: text,
         isUserMessage: false,
-        source: source,
+        sources: sources,
         documentIds: documentIds,
       ),
     );
@@ -78,14 +78,14 @@ class ChatController extends ChangeNotifier {
   void updateMessage(
     int index,
     String text, {
-    String? source,
+    List<String>? sources,
     List<String>? documentIds,
   }) {
     if (index >= 0 && index < _messages.length) {
       _messages[index] = ChatMessage(
         text: text,
         isUserMessage: _messages[index].isUserMessage,
-        source: source ?? _messages[index].source,
+        sources: sources ?? _messages[index].sources,
         documentIds: documentIds ?? _messages[index].documentIds,
       );
       notifyListeners();
@@ -114,20 +114,32 @@ class ChatController extends ChangeNotifier {
 
       // Extrahiere die Felder aus der Response
       final answer = response['answer'] ?? 'Keine Antwort erhalten';
-      final source = response['source'];
-      final documentIds = response['document_ids'] as List<String>?;
+      
+      // Extrahiere 'sources' oder 'source'
+      List<String>? sources;
+      if (response.containsKey('sources') && response['sources'] != null) {
+        sources = (response['sources'] as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
+      } else if (response.containsKey('source') && response['source'] != null) {
+        sources = [response['source'].toString()];
+      }
+
+      final documentIds = (response['document_ids'] ?? response['documentIds']) as List<dynamic>?;
+      final documentIdsAsString = documentIds?.map((e) => e.toString()).toList();
+
 
       // Speichere die Werte für späteren Zugriff
       _lastAnswer = answer;
-      _lastSource = source;
-      _lastDocumentIds = documentIds;
+      _lastSources = sources;
+      _lastDocumentIds = documentIdsAsString;
 
       // Ersetze die Typing-Nachricht durch die echte Antwort
       _messages[typingIndex] = ChatMessage(
         text: answer,
         isUserMessage: false,
-        source: source,
-        documentIds: documentIds,
+        sources: sources,
+        documentIds: documentIdsAsString,
       );
       notifyListeners();
       return null; // Kein Fehler
@@ -156,7 +168,7 @@ class ChatController extends ChangeNotifier {
       ),
     );
     // Lösche temporäre Speicher
-    _lastSource = null;
+    _lastSources = null;
     _lastDocumentIds = null;
     _lastAnswer = null;
     notifyListeners();
@@ -166,7 +178,7 @@ class ChatController extends ChangeNotifier {
   Map<String, dynamic> getTemporaryStorage() {
     return {
       'answer': _lastAnswer,
-      'source': _lastSource,
+      'sources': _lastSources,
       'documentIds': _lastDocumentIds,
     };
   }
@@ -174,7 +186,7 @@ class ChatController extends ChangeNotifier {
   /// Hilfsmethode: Lösche alle temporären Speicher
   void clearTemporaryStorage() {
     _lastAnswer = null;
-    _lastSource = null;
+    _lastSources = null;
     _lastDocumentIds = null;
     notifyListeners();
   }

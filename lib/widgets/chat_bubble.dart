@@ -9,6 +9,13 @@ class ChatBubble extends StatelessWidget {
 
   const ChatBubble({super.key, required this.message, this.projectName});
 
+  static const _noDocumentValues = [
+    "no_document_used",
+    "no_document_found",
+    "None",
+    "none",
+  ];
+
   @override
   Widget build(BuildContext context) {
     print(message);
@@ -91,11 +98,11 @@ class ChatBubble extends StatelessWidget {
 
             // Citation Cards - eine für jede documentId wenn source oder documentIds vorhanden
             if (_shouldShowCitationCard(
-              message.source,
+              message.sources,
               message.documentIds,
             )) ...[
               const SizedBox(height: 8),
-              ...(_buildCitationCards(message.source, message.documentIds)),
+              ...(_buildCitationCards(message.sources, message.documentIds)),
             ],
           ],
         ),
@@ -104,13 +111,14 @@ class ChatBubble extends StatelessWidget {
   }
 
   /// Prüft, ob die CitationCard angezeigt werden soll
-  bool _shouldShowCitationCard(String? source, List<String>? documentIds) {
+  bool _shouldShowCitationCard(List<String>? sources, List<String>? documentIds) {
     // Liste der Werte, die bedeuten "kein Dokument"
-    const noDocumentValues = ["no_document_used", "no_document_found"];
+    const noDocumentValues = _noDocumentValues;
 
-    // Prüfe ob source ein "kein Dokument" Wert ist
-    bool sourceIsNoDocument =
-        source == null || noDocumentValues.contains(source);
+    // Prüfe ob sources "kein Dokument" Werte enthalten
+    bool sourcesAreNoDocument = sources == null ||
+        sources.isEmpty ||
+        sources.every((s) => noDocumentValues.contains(s));
 
     // Prüfe ob documentIds ein "kein Dokument" Wert ist
     bool documentIdIsNoDocument =
@@ -118,12 +126,12 @@ class ChatBubble extends StatelessWidget {
         documentIds.isEmpty ||
         documentIds.every((id) => noDocumentValues.contains(id));
 
-    print('sourceIsNoDocument: $sourceIsNoDocument');
+    print('sourcesAreNoDocument: $sourcesAreNoDocument');
     print('documentIdIsNoDocument: $documentIdIsNoDocument');
-    print('source: $source');
+    print('sources: $sources');
     print('documentIds: $documentIds');
     // CitationCard nicht anzeigen wenn beide "kein Dokument" sind
-    if (sourceIsNoDocument && documentIdIsNoDocument) {
+    if (sourcesAreNoDocument && documentIdIsNoDocument) {
       return false;
     }
 
@@ -132,36 +140,60 @@ class ChatBubble extends StatelessWidget {
   }
 
   /// Erstellt CitationCards für die verfügbaren documentIds
-  List<Widget> _buildCitationCards(String? source, List<String>? documentIds) {
+  List<Widget> _buildCitationCards(
+      List<String>? sources, List<String>? documentIds) {
     List<Widget> cards = [];
+    const noDocumentValues = _noDocumentValues;
+
+    // Filtere gültige Dokument-IDs und die zugehörigen Quellen
+    final validDocumentIds = <String>[];
+    final validSources = <String?>[];
 
     if (documentIds != null && documentIds.isNotEmpty) {
-      // Entferne "kein Dokument" Werte
-      const noDocumentValues = ["no_document_used", "no_document_found"];
-      final validDocumentIds =
-          documentIds.where((id) => !noDocumentValues.contains(id)).toList();
+      for (int i = 0; i < documentIds.length; i++) {
+        final docId = documentIds[i];
+        if (!noDocumentValues.contains(docId)) {
+          validDocumentIds.add(docId);
+          // Füge die entsprechende Quelle hinzu, falls vorhanden
+          if (sources != null && i < sources.length) {
+            validSources.add(sources[i]);
+          } else {
+            validSources.add(null);
+          }
+        }
+      }
+    }
 
-      for (String documentId in validDocumentIds) {
+    // Erstelle CitationCards für jedes gültige Dokument
+    if (validDocumentIds.isNotEmpty) {
+      for (int i = 0; i < validDocumentIds.length; i++) {
         cards.add(
           Padding(
             padding: EdgeInsets.only(bottom: cards.isNotEmpty ? 8.0 : 0),
             child: CitationCard(
-              source: source,
-              documentId: documentId,
+              source: validSources[i],
+              documentId: validDocumentIds[i],
               projectName: projectName,
             ),
           ),
         );
       }
-    } else if (source != null && source.trim().isNotEmpty) {
-      // Fallback: Zeige Citation Card nur mit source wenn keine gültigen documentIds vorhanden
-      const noDocumentValues = ["no_document_used", "no_document_found"];
-      if (!noDocumentValues.contains(source)) {
-        cards.add(
-          CitationCard(
-            source: source,
-            documentId: null,
-            projectName: projectName,
+    }
+    // Fallback: Wenn es keine documentIds gibt, aber gültige Quellen
+    else if (sources != null && sources.isNotEmpty) {
+      final validOnlySources = sources
+          .where((s) => !noDocumentValues.contains(s))
+          .toList();
+
+      for (final source in validOnlySources) {
+         cards.add(
+          Padding(
+            padding: EdgeInsets.only(bottom: cards.isNotEmpty ? 8.0 : 0),
+            child: CitationCard(
+              source: source,
+              documentId: null,
+              projectName: projectName,
+            ),
           ),
         );
       }

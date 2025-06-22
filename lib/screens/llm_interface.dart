@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 import '../controllers/chat_controller.dart';
 import '../widgets/chat_bubble.dart';
+import 'server_unavailable_screen.dart';
 
 class LLMInterface extends StatefulWidget {
   const LLMInterface({super.key});
@@ -13,6 +15,8 @@ class LLMInterfaceState extends State<LLMInterface> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ChatController _chatController = ChatController();
+  bool _isServerAvailable = true;
+  ChatMode _selectedMode = AppConfig.chatMode;
 
   @override
   void initState() {
@@ -35,7 +39,10 @@ class LLMInterfaceState extends State<LLMInterface> {
     super.dispose();
   }
 
-  Future<void> _initializeChat() async {
+  Future<void> _initializeChat({bool clearChat = false}) async {
+    if (clearChat) {
+      _chatController.clearMessages();
+    }
     // Get project name from route arguments
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -48,12 +55,31 @@ class LLMInterfaceState extends State<LLMInterface> {
       _chatController.setIsLoading(true);
     });
     final error = await _chatController.startBot();
+    if (error != null) {
+      debugPrint('Error initializing chat: $error');
+    }
     if (!mounted) return;
     setState(() {
       _chatController.setIsLoading(false);
+      if (error != null) {
+        // Check for specific connection errors
+        if (error.contains('Failed host lookup') ||
+            error.contains('Connection refused') ||
+            error.contains('Network is unreachable') ||
+            error.contains('timed out')) {
+          _isServerAvailable = false;
+        } else {
+          _isServerAvailable = true; // Assume server is available, but another error occurred
+          _showSnackBar(error, isError: true);
+        }
+      } else {
+        _isServerAvailable = true;
+      }
     });
-    if (error != null && mounted) {
-      _showSnackBar(error, isError: true);
+    if (error != null && mounted && !_isServerAvailable) {
+      // No need to show a snackbar if the dedicated screen is shown
+    } else if (error != null && mounted) {
+      // _showSnackBar(error, isError: true); // Optional: Kann entfernt oder beibehalten werden
     }
   }
 
@@ -90,13 +116,24 @@ class LLMInterfaceState extends State<LLMInterface> {
     final error = await _chatController.sendMessage(text);
     if (!mounted) return;
 
-    if (error != null && mounted) {
-      _showSnackBar(error, isError: true);
+    if (error != null) {
+      if (error.contains('Failed host lookup') ||
+          error.contains('Connection refused')) {
+        setState(() {
+          _isServerAvailable = false;
+        });
+      } else {
+        _showSnackBar(error, isError: true);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isServerAvailable) {
+      return ServerUnavailableScreen(onRetry: _initializeChat);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -106,8 +143,35 @@ class LLMInterfaceState extends State<LLMInterface> {
         ),
         elevation: 0,
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ToggleButtons(
+              isSelected: [_selectedMode == ChatMode.normal, _selectedMode == ChatMode.deepSearch],
+              onPressed: (int index) {
+                setState(() {
+                  _selectedMode = index == 0 ? ChatMode.normal : ChatMode.deepSearch;
+                  AppConfig.setChatMode(_selectedMode);
+                  _showSnackBar('Modus auf ${_selectedMode == ChatMode.normal ? "Normal" : "Deep Search"} geändert. Chat wird neu gestartet.');
+                  _initializeChat(clearChat: true);
+                });
+              },
+              borderRadius: BorderRadius.circular(8.0),
+              selectedColor: Colors.white,
+              fillColor: Theme.of(context).colorScheme.primary,
+              children: const <Widget>[
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Text('Normal'),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Text('Deep Search'),
+                ),
+              ],
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.clear),
+            icon: const Icon(Icons.do_not_disturb),
             onPressed: () {
               _chatController.clearMessages();
             },
@@ -122,15 +186,32 @@ class LLMInterfaceState extends State<LLMInterface> {
               child: AnimatedBuilder(
                 animation: _chatController,
                 builder: (context, child) {
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _chatController.messages.length,
-                    itemBuilder: (context, index) {
-                      return ChatBubble(
-                        message: _chatController.messages[index],
-                        projectName: _chatController.projectName,
-                      );
-                    },
+                  return Stack(
+                    children: [
+                      if (_chatController.messages.length <= 1)
+                        Center(
+                          child: Text(
+                            _selectedMode == ChatMode.normal
+                                ? 'Normal'
+                                : 'Deep Search',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.withOpacity(0.15),
+                            ),
+                          ),
+                        ),
+                      ListView.builder(
+                        controller: _scrollController,
+                        itemCount: _chatController.messages.length,
+                        itemBuilder: (context, index) {
+                          return ChatBubble(
+                            message: _chatController.messages[index],
+                            projectName: _chatController.projectName,
+                          );
+                        },
+                      ),
+                    ],
                   );
                 },
               ),
