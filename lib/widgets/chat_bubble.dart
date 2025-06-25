@@ -115,6 +115,13 @@ class ChatBubble extends StatelessWidget {
     // Liste der Werte, die bedeuten "kein Dokument"
     const noDocumentValues = _noDocumentValues;
 
+    // Spezialfall: documentIds ist genau ["None"]
+    if (documentIds != null &&
+        documentIds.length == 1 &&
+        documentIds.first == "None") {
+      return false;
+    }
+
     // Prüfe ob sources "kein Dokument" Werte enthalten
     bool sourcesAreNoDocument = sources == null ||
         sources.isEmpty ||
