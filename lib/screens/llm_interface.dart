@@ -151,7 +151,7 @@ class LLMInterfaceState extends State<LLMInterface> {
                 setState(() {
                   _selectedMode = index == 0 ? ChatMode.normal : ChatMode.deepSearch;
                   AppConfig.setChatMode(_selectedMode);
-                  _showSnackBar('Modus auf ${_selectedMode == ChatMode.normal ? "Normal" : "Deep Search"} geändert. Chat wird neu gestartet.');
+                  _showSnackBar('Modus auf ${_selectedMode == ChatMode.normal ? "Normal" : "DeepSearch"} geändert. Chat wird neu gestartet.');
                   _initializeChat(clearChat: true);
                 });
               },
@@ -165,7 +165,7 @@ class LLMInterfaceState extends State<LLMInterface> {
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text('Deep Search'),
+                  child: Text('DeepSearch'),
                 ),
               ],
             ),
