@@ -137,8 +137,14 @@ class ChatBubble extends StatelessWidget {
     print('documentIdIsNoDocument: $documentIdIsNoDocument');
     print('sources: $sources');
     print('documentIds: $documentIds');
-    // CitationCard nicht anzeigen wenn beide "kein Dokument" sind
-    if (sourcesAreNoDocument && documentIdIsNoDocument) {
+    
+    // CitationCard nicht anzeigen wenn documentIds keine gültigen Dokumente enthalten
+    if (documentIdIsNoDocument) {
+      return false;
+    }
+
+    // CitationCard nicht anzeigen wenn sources leer oder null ist
+    if (sources == null || sources.isEmpty) {
       return false;
     }
 
