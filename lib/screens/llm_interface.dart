@@ -128,6 +128,57 @@ class LLMInterfaceState extends State<LLMInterface> {
     }
   }
 
+  void _onModeChanged(ChatMode mode) {
+    setState(() {
+      _selectedMode = mode;
+      AppConfig.setChatMode(_selectedMode);
+      _showSnackBar('Modus auf ${_selectedMode == ChatMode.normal ? "Normal" : "DeepSearch"} geändert. Chat wird neu gestartet.');
+      _initializeChat(clearChat: true);
+    });
+  }
+
+  Widget _buildModeSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: SegmentedButton<ChatMode>(
+        segments: [
+          ButtonSegment<ChatMode>(
+            value: ChatMode.normal,
+            label: const Text('Normal'),
+            icon: const Icon(Icons.chat_bubble_outline),
+          ),
+          ButtonSegment<ChatMode>(
+            value: ChatMode.deepSearch,
+            label: const Text('DeepSearch'),
+            icon: const Icon(Icons.psychology_outlined),
+          ),
+        ],
+        selected: <ChatMode>{_selectedMode},
+        onSelectionChanged: (Set<ChatMode> newSelection) {
+          _onModeChanged(newSelection.first);
+        },
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return Theme.of(context).colorScheme.primary;
+              }
+              return null;
+            },
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
+                return Colors.white;
+              }
+              return Theme.of(context).colorScheme.primary;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isServerAvailable) {
@@ -143,33 +194,6 @@ class LLMInterfaceState extends State<LLMInterface> {
         ),
         elevation: 0,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ToggleButtons(
-              isSelected: [_selectedMode == ChatMode.normal, _selectedMode == ChatMode.deepSearch],
-              onPressed: (int index) {
-                setState(() {
-                  _selectedMode = index == 0 ? ChatMode.normal : ChatMode.deepSearch;
-                  AppConfig.setChatMode(_selectedMode);
-                  _showSnackBar('Modus auf ${_selectedMode == ChatMode.normal ? "Normal" : "DeepSearch"} geändert. Chat wird neu gestartet.');
-                  _initializeChat(clearChat: true);
-                });
-              },
-              borderRadius: BorderRadius.circular(8.0),
-              selectedColor: Colors.white,
-              fillColor: Theme.of(context).colorScheme.primary,
-              children: const <Widget>[
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text('Normal'),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text('DeepSearch'),
-                ),
-              ],
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.do_not_disturb),
             onPressed: () {
@@ -182,6 +206,7 @@ class LLMInterfaceState extends State<LLMInterface> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            _buildModeSelector(),
             Expanded(
               child: AnimatedBuilder(
                 animation: _chatController,
@@ -193,7 +218,7 @@ class LLMInterfaceState extends State<LLMInterface> {
                           child: Text(
                             _selectedMode == ChatMode.normal
                                 ? 'Normal'
-                                : 'Deep Search',
+                                : 'DeepSearch',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -268,7 +293,12 @@ class LLMInterfaceState extends State<LLMInterface> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(width: 2),
                         ),
-                        suffixIcon: Icon(Icons.lightbulb_outline, color: Theme.of(context).colorScheme.secondary,),
+                        suffixIcon: Icon(
+                          _selectedMode == ChatMode.normal 
+                              ? Icons.chat_bubble_outline 
+                              : Icons.psychology_outlined,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                       ),
                       maxLines: 1,
                       onSubmitted: (_) => _sendMessage(),
