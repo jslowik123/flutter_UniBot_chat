@@ -121,12 +121,21 @@ class ChatController extends ChangeNotifier {
         sources = (response['sources'] as List<dynamic>)
             .map((e) => e.toString())
             .toList();
-      } else if (response.containsKey('source') && response['source'] != null) {
+      } else if (response.containsKey('source') && response['source'] != null && response['source'].toString().trim().isNotEmpty) {
         sources = [response['source'].toString()];
       }
 
-      final documentIds = (response['document_ids'] ?? response['documentIds']) as List<dynamic>?;
-      final documentIdsAsString = documentIds?.map((e) => e.toString()).toList();
+      // Extrahiere 'document_ids', 'documentIds' oder 'document_id'
+      List<String>? documentIdsAsString;
+      if (response.containsKey('document_ids') && response['document_ids'] != null) {
+        final documentIds = response['document_ids'] as List<dynamic>?;
+        documentIdsAsString = documentIds?.map((e) => e.toString()).toList();
+      } else if (response.containsKey('documentIds') && response['documentIds'] != null) {
+        final documentIds = response['documentIds'] as List<dynamic>?;
+        documentIdsAsString = documentIds?.map((e) => e.toString()).toList();
+      } else if (response.containsKey('document_id') && response['document_id'] != null && response['document_id'].toString().trim().isNotEmpty) {
+        documentIdsAsString = [response['document_id'].toString()];
+      }
 
 
       // Speichere die Werte für späteren Zugriff

@@ -57,37 +57,25 @@ class ChatService {
           // Extrahiere die Response-Felder
           final result = <String, dynamic>{};
 
-          if (jsonResponse.containsKey('answer')) {
-            result['answer'] = jsonResponse['answer']?.toString();
+          // Answer (immer String, auch wenn leer)
+          result['answer'] = jsonResponse['answer']?.toString() ?? '';
+
+          // Sources (immer Liste, auch wenn leer)
+          if (jsonResponse.containsKey('sources') && jsonResponse['sources'] is List) {
+            result['sources'] = (jsonResponse['sources'] as List).map((s) => s.toString()).toList();
+          } else if (jsonResponse.containsKey('source') && jsonResponse['source'] != null && jsonResponse['source'].toString().isNotEmpty) {
+            result['sources'] = [jsonResponse['source'].toString()];
+          } else {
+            result['sources'] = [];
           }
 
-          // Verarbeite 'sources' (plural)
-          if (jsonResponse.containsKey('sources')) {
-            final sourcesValue = jsonResponse['sources'];
-            if (sourcesValue is List) {
-              result['sources'] =
-                  sourcesValue.map((s) => s.toString()).toList();
-            }
-          } 
-          // Fallback für 'source' (singular)
-          else if (jsonResponse.containsKey('source')) {
-            result['sources'] = [jsonResponse['source']?.toString()];
-          }
-
-          // Verarbeite 'document_ids' (plural)
-          if (jsonResponse.containsKey('document_ids')) {
-            final documentIdValue = jsonResponse['document_ids'];
-            if (documentIdValue is List) {
-              result['document_ids'] =
-                  documentIdValue.map((id) => id.toString()).toList();
-            }
-          } 
-          // Fallback für 'document_id' (singular)
-          else if (jsonResponse.containsKey('document_id')) {
-            final documentIdValue = jsonResponse['document_id'];
-            if (documentIdValue != null) {
-              result['document_ids'] = [documentIdValue.toString()];
-            }
+          // Document IDs (immer Liste, auch wenn leer)
+          if (jsonResponse.containsKey('document_ids') && jsonResponse['document_ids'] is List) {
+            result['document_ids'] = (jsonResponse['document_ids'] as List).map((id) => id.toString()).toList();
+          } else if (jsonResponse.containsKey('document_id') && jsonResponse['document_id'] != null && jsonResponse['document_id'].toString().isNotEmpty) {
+            result['document_ids'] = [jsonResponse['document_id'].toString()];
+          } else {
+            result['document_ids'] = [];
           }
 
           // Fallback: Wenn 'response' ein verschachteltes JSON ist
@@ -97,35 +85,21 @@ class ChatService {
               try {
                 final innerJson = json.decode(responseField);
                 if (innerJson is Map<String, dynamic>) {
+                  // Answer (überschreibt nur, wenn vorhanden)
                   if (innerJson.containsKey('answer')) {
-                    result['answer'] = innerJson['answer']?.toString();
+                    result['answer'] = innerJson['answer']?.toString() ?? result['answer'];
                   }
-                  
-                  // Verarbeite 'sources' im inneren JSON
-                  if (innerJson.containsKey('sources')) {
-                     final sourcesValue = innerJson['sources'];
-                     if (sourcesValue is List) {
-                       result['sources'] = sourcesValue.map((s) => s.toString()).toList();
-                     }
-                  } 
-                  // Fallback für 'source' im inneren JSON
-                  else if (innerJson.containsKey('source')) {
-                    result['sources'] = [innerJson['source']?.toString()];
+                  // Sources (immer Liste)
+                  if (innerJson.containsKey('sources') && innerJson['sources'] is List) {
+                    result['sources'] = (innerJson['sources'] as List).map((s) => s.toString()).toList();
+                  } else if (innerJson.containsKey('source') && innerJson['source'] != null && innerJson['source'].toString().isNotEmpty) {
+                    result['sources'] = [innerJson['source'].toString()];
                   }
-
-                  // Verarbeite 'document_ids' im inneren JSON
-                  if (innerJson.containsKey('document_ids')) {
-                    final documentIdValue = innerJson['document_ids'];
-                     if (documentIdValue is List) {
-                       result['document_ids'] = documentIdValue.map((id) => id.toString()).toList();
-                     }
-                  }
-                   // Fallback für 'document_id' im inneren JSON
-                  else if (innerJson.containsKey('document_id')) {
-                    final documentIdValue = innerJson['document_id'];
-                    if (documentIdValue != null) {
-                      result['document_ids'] = [documentIdValue.toString()];
-                    }
+                  // Document IDs (immer Liste)
+                  if (innerJson.containsKey('document_ids') && innerJson['document_ids'] is List) {
+                    result['document_ids'] = (innerJson['document_ids'] as List).map((id) => id.toString()).toList();
+                  } else if (innerJson.containsKey('document_id') && innerJson['document_id'] != null && innerJson['document_id'].toString().isNotEmpty) {
+                    result['document_ids'] = [innerJson['document_id'].toString()];
                   }
                 }
               } catch (e) {

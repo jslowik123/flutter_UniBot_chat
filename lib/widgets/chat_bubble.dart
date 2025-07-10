@@ -122,16 +122,16 @@ class ChatBubble extends StatelessWidget {
       return false;
     }
 
-    // Prüfe ob sources "kein Dokument" Werte enthalten
+    // Prüfe ob sources "kein Dokument" Werte enthalten oder leer sind
     bool sourcesAreNoDocument = sources == null ||
         sources.isEmpty ||
-        sources.every((s) => noDocumentValues.contains(s));
+        sources.every((s) => noDocumentValues.contains(s) || s.trim().isEmpty);
 
-    // Prüfe ob documentIds ein "kein Dokument" Wert ist
+    // Prüfe ob documentIds ein "kein Dokument" Wert ist oder leer
     bool documentIdIsNoDocument =
         documentIds == null ||
         documentIds.isEmpty ||
-        documentIds.every((id) => noDocumentValues.contains(id));
+        documentIds.every((id) => noDocumentValues.contains(id) || id.trim().isEmpty);
 
     print('sourcesAreNoDocument: $sourcesAreNoDocument');
     print('documentIdIsNoDocument: $documentIdIsNoDocument');
@@ -144,7 +144,7 @@ class ChatBubble extends StatelessWidget {
     }
 
     // CitationCard nicht anzeigen wenn sources leer oder null ist
-    if (sources == null || sources.isEmpty) {
+    if (sourcesAreNoDocument) {
       return false;
     }
 
@@ -165,7 +165,7 @@ class ChatBubble extends StatelessWidget {
     if (documentIds != null && documentIds.isNotEmpty) {
       for (int i = 0; i < documentIds.length; i++) {
         final docId = documentIds[i];
-        if (!noDocumentValues.contains(docId)) {
+        if (!noDocumentValues.contains(docId) && docId.trim().isNotEmpty) {
           validDocumentIds.add(docId);
           // Füge die entsprechende Quelle hinzu, falls vorhanden
           if (sources != null && i < sources.length) {
@@ -195,7 +195,7 @@ class ChatBubble extends StatelessWidget {
     // Fallback: Wenn es keine documentIds gibt, aber gültige Quellen
     else if (sources != null && sources.isNotEmpty) {
       final validOnlySources = sources
-          .where((s) => !noDocumentValues.contains(s))
+          .where((s) => !noDocumentValues.contains(s) && s.trim().isNotEmpty)
           .toList();
 
       for (final source in validOnlySources) {
