@@ -78,6 +78,15 @@ class ChatService {
             result['document_ids'] = [];
           }
 
+          // Page Numbers (immer Liste, auch wenn leer)
+          if (jsonResponse.containsKey('pages') && jsonResponse['pages'] is List) {
+            result['pages'] = (jsonResponse['pages'] as List).map((page) => page.toString()).toList();
+          } else if (jsonResponse.containsKey('pages') && jsonResponse['pages'] != null && jsonResponse['pages'].toString().isNotEmpty) {
+            result['pages'] = [jsonResponse['pages'].toString()];
+          } else {
+            result['pages'] = [];
+          }
+
           // Fallback: Wenn 'response' ein verschachteltes JSON ist
           if (jsonResponse.containsKey('response')) {
             final responseField = jsonResponse['response'];
@@ -101,6 +110,12 @@ class ChatService {
                   } else if (innerJson.containsKey('document_id') && innerJson['document_id'] != null && innerJson['document_id'].toString().isNotEmpty) {
                     result['document_ids'] = [innerJson['document_id'].toString()];
                   }
+                  // Page Numbers (immer Liste)
+                  if (innerJson.containsKey('pages') && innerJson['pages'] is List) {
+                    result['pages'] = (innerJson['pages'] as List).map((page) => page.toString()).toList();
+                  } else if (innerJson.containsKey('page_number') && innerJson['page_number'] != null && innerJson['page_number'].toString().isNotEmpty) {
+                    result['pages'] = [innerJson['page_number'].toString()];
+                  }
                 }
               } catch (e) {
                 // ignore, fallback bleibt
@@ -112,6 +127,7 @@ class ChatService {
           print('answer: ${result['answer']}');
           print('sources: ${result['sources']}');
           print('document_ids: ${result['document_ids']}');
+          print('pages: ${result['pages']}');
 
           return result;
         } catch (e) {

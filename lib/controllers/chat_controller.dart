@@ -62,13 +62,14 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Fügt eine Bot-Message hinzu
-  void addBotMessage(String text, {List<String>? sources, List<String>? documentIds}) {
+  void addBotMessage(String text, {List<String>? sources, List<String>? documentIds, List<String>? pages}) {
     _messages.add(
       ChatMessage(
         text: text,
         isUserMessage: false,
         sources: sources,
         documentIds: documentIds,
+        pages: pages,
       ),
     );
     notifyListeners();
@@ -80,6 +81,7 @@ class ChatController extends ChangeNotifier {
     String text, {
     List<String>? sources,
     List<String>? documentIds,
+    List<String>? pages,
   }) {
     if (index >= 0 && index < _messages.length) {
       _messages[index] = ChatMessage(
@@ -87,6 +89,7 @@ class ChatController extends ChangeNotifier {
         isUserMessage: _messages[index].isUserMessage,
         sources: sources ?? _messages[index].sources,
         documentIds: documentIds ?? _messages[index].documentIds,
+        pages: pages ?? _messages[index].pages,
       );
       notifyListeners();
     }
@@ -137,6 +140,13 @@ class ChatController extends ChangeNotifier {
         documentIdsAsString = [response['document_id'].toString()];
       }
 
+      // Extrahiere 'pages'
+      List<String>? pages;
+      if (response.containsKey('pages') && response['pages'] != null) {
+        pages = (response['pages'] as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
+      }
 
       // Speichere die Werte für späteren Zugriff
       _lastAnswer = answer;
@@ -149,6 +159,7 @@ class ChatController extends ChangeNotifier {
         isUserMessage: false,
         sources: sources,
         documentIds: documentIdsAsString,
+        pages: pages,
       );
       notifyListeners();
       return null; // Kein Fehler

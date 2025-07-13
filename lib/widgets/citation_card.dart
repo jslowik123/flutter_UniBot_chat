@@ -6,6 +6,7 @@ class CitationCard extends StatelessWidget {
   final String? documentId;
   final String? projectName;
   final String? documentName;
+  final List<String>? pages;
 
   const CitationCard({
     super.key,
@@ -13,6 +14,7 @@ class CitationCard extends StatelessWidget {
     this.documentId,
     this.projectName,
     this.documentName,
+    this.pages,
   });
 
 
@@ -59,6 +61,27 @@ class CitationCard extends StatelessWidget {
                 color: Colors.grey[700],
                 height: 1.3,
               ),
+            ),
+          ],
+          if (pages != null && pages!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.bookmark_outline,
+                  size: 14,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Seite${pages!.length > 1 ? 'n' : ''}: ${pages!.join(', ')}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
           if (documentId != null) ...[

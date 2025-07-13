@@ -21,6 +21,7 @@ class ChatBubble extends StatelessWidget {
     print(message);
     print('source: ${message.source}');
     print('documentIds: ${message.documentIds}');
+    print('pages: ${message.pages}');
     return Align(
       alignment:
           message.isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
@@ -102,7 +103,7 @@ class ChatBubble extends StatelessWidget {
               message.documentIds,
             )) ...[
               const SizedBox(height: 8),
-              ...(_buildCitationCards(message.sources, message.documentIds)),
+              ...(_buildCitationCards(message.sources, message.documentIds, message.pages)),
             ],
           ],
         ),
@@ -154,13 +155,14 @@ class ChatBubble extends StatelessWidget {
 
   /// Erstellt CitationCards für die verfügbaren documentIds
   List<Widget> _buildCitationCards(
-      List<String>? sources, List<String>? documentIds) {
+      List<String>? sources, List<String>? documentIds, List<String>? pages) {
     List<Widget> cards = [];
     const noDocumentValues = _noDocumentValues;
 
     // Filtere gültige Dokument-IDs und die zugehörigen Quellen
     final validDocumentIds = <String>[];
     final validSources = <String?>[];
+    final validPages = <String>[];
 
     if (documentIds != null && documentIds.isNotEmpty) {
       for (int i = 0; i < documentIds.length; i++) {
@@ -172,6 +174,12 @@ class ChatBubble extends StatelessWidget {
             validSources.add(sources[i]);
           } else {
             validSources.add(null);
+          }
+          // Füge die entsprechende Seite hinzu, falls vorhanden
+          if (pages != null && i < pages.length) {
+            validPages.add(pages[i]);
+          } else {
+            validPages.add(''); // Default oder leer falls keine Seite
           }
         }
       }
@@ -187,6 +195,7 @@ class ChatBubble extends StatelessWidget {
               source: validSources[i],
               documentId: validDocumentIds[i],
               projectName: projectName,
+              pages: validPages.isNotEmpty ? [validPages[i]] : null,
             ),
           ),
         );
@@ -206,6 +215,7 @@ class ChatBubble extends StatelessWidget {
               source: source,
               documentId: null,
               projectName: projectName,
+              pages: pages,
             ),
           ),
         );

@@ -4,6 +4,7 @@ class ChatMessage {
   final DateTime timestamp;
   final List<String>? sources;
   final List<String>? documentIds;
+  final List<String>? pages;
   final bool isTyping;
 
   // Getter für die Abwärtskompatibilität
@@ -15,6 +16,7 @@ class ChatMessage {
     DateTime? timestamp,
     this.sources,
     this.documentIds,
+    this.pages,
     this.isTyping = false,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -25,6 +27,7 @@ class ChatMessage {
     DateTime? timestamp,
     List<String>? sources,
     List<String>? documentIds,
+    List<String>? pages,
     bool? isTyping,
   }) {
     return ChatMessage(
@@ -33,6 +36,7 @@ class ChatMessage {
       timestamp: timestamp ?? this.timestamp,
       sources: sources ?? this.sources,
       documentIds: documentIds ?? this.documentIds,
+      pages: pages ?? this.pages,
       isTyping: isTyping ?? this.isTyping,
     );
   }
@@ -44,6 +48,7 @@ class ChatMessage {
       'timestamp': timestamp.toIso8601String(),
       'sources': sources,
       'documentIds': documentIds,
+      'pages': pages,
       'isTyping': isTyping,
     };
   }
@@ -70,6 +75,10 @@ class ChatMessage {
       documentIds:
           json['documentIds'] != null
               ? List<String>.from(json['documentIds'] as List)
+              : null,
+      pages:
+          json['pages'] != null
+              ? List<String>.from(json['pages'] as List)
               : null,
       isTyping: json['isTyping'] as bool? ?? false,
     );
