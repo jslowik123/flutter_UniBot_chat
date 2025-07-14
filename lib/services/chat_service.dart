@@ -57,32 +57,38 @@ class ChatService {
           // Extrahiere die Response-Felder
           final result = <String, dynamic>{};
 
+          // NEU: Extrahiere ggf. aus structured_response
+          Map<String, dynamic> responseMap = jsonResponse;
+          if (jsonResponse.containsKey('structured_response') && jsonResponse['structured_response'] is Map) {
+            responseMap = jsonResponse['structured_response'] as Map<String, dynamic>;
+          }
+
           // Answer (immer String, auch wenn leer)
-          result['answer'] = jsonResponse['answer']?.toString() ?? '';
+          result['answer'] = responseMap['answer']?.toString() ?? '';
 
           // Sources (immer Liste, auch wenn leer)
-          if (jsonResponse.containsKey('sources') && jsonResponse['sources'] is List) {
-            result['sources'] = (jsonResponse['sources'] as List).map((s) => s.toString()).toList();
-          } else if (jsonResponse.containsKey('source') && jsonResponse['source'] != null && jsonResponse['source'].toString().isNotEmpty) {
-            result['sources'] = [jsonResponse['source'].toString()];
+          if (responseMap.containsKey('sources') && responseMap['sources'] is List) {
+            result['sources'] = (responseMap['sources'] as List).map((s) => s.toString()).toList();
+          } else if (responseMap.containsKey('source') && responseMap['source'] != null && responseMap['source'].toString().isNotEmpty) {
+            result['sources'] = [responseMap['source'].toString()];
           } else {
             result['sources'] = [];
           }
 
           // Document IDs (immer Liste, auch wenn leer)
-          if (jsonResponse.containsKey('document_ids') && jsonResponse['document_ids'] is List) {
-            result['document_ids'] = (jsonResponse['document_ids'] as List).map((id) => id.toString()).toList();
-          } else if (jsonResponse.containsKey('document_id') && jsonResponse['document_id'] != null && jsonResponse['document_id'].toString().isNotEmpty) {
-            result['document_ids'] = [jsonResponse['document_id'].toString()];
+          if (responseMap.containsKey('document_ids') && responseMap['document_ids'] is List) {
+            result['document_ids'] = (responseMap['document_ids'] as List).map((id) => id.toString()).toList();
+          } else if (responseMap.containsKey('document_id') && responseMap['document_id'] != null && responseMap['document_id'].toString().isNotEmpty) {
+            result['document_ids'] = [responseMap['document_id'].toString()];
           } else {
             result['document_ids'] = [];
           }
 
           // Page Numbers (immer Liste, auch wenn leer)
-          if (jsonResponse.containsKey('pages') && jsonResponse['pages'] is List) {
-            result['pages'] = (jsonResponse['pages'] as List).map((page) => page.toString()).toList();
-          } else if (jsonResponse.containsKey('pages') && jsonResponse['pages'] != null && jsonResponse['pages'].toString().isNotEmpty) {
-            result['pages'] = [jsonResponse['pages'].toString()];
+          if (responseMap.containsKey('pages') && responseMap['pages'] is List) {
+            result['pages'] = (responseMap['pages'] as List).map((page) => page.toString()).toList();
+          } else if (responseMap.containsKey('pages') && responseMap['pages'] != null && responseMap['pages'].toString().isNotEmpty) {
+            result['pages'] = [responseMap['pages'].toString()];
           } else {
             result['pages'] = [];
           }

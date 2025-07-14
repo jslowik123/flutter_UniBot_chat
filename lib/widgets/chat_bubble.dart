@@ -256,14 +256,15 @@ class ChatBubble extends StatelessWidget {
     final RegExp italicPattern = RegExp(r'\*(.*?)\*');
 
     int lastIndex = 0;
+    bool foundFormatting = false;
 
     // Verarbeite fetten Text
-    boldPattern.allMatches(text).forEach((match) {
+    for (final match in boldPattern.allMatches(text)) {
+      foundFormatting = true;
       // Text vor dem Match
       if (match.start > lastIndex) {
         spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
       }
-
       // Fetter Text
       spans.add(
         TextSpan(
@@ -271,30 +272,34 @@ class ChatBubble extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
-
       lastIndex = match.end;
-    });
+    }
 
     // Verarbeite kursiven Text (vereinfacht)
     if (lastIndex < text.length) {
       final remainingText = text.substring(lastIndex);
-      italicPattern.allMatches(remainingText).forEach((match) {
+      int italicLastIndex = 0;
+      for (final match in italicPattern.allMatches(remainingText)) {
+        foundFormatting = true;
+        if (match.start > italicLastIndex) {
+          spans.add(TextSpan(text: remainingText.substring(italicLastIndex, match.start)));
+        }
         spans.add(
           TextSpan(
             text: match.group(1),
             style: const TextStyle(fontStyle: FontStyle.italic),
           ),
         );
-      });
-
-      // Falls kein kursiver Text, füge den Rest als normalen Text hinzu
-      if (!italicPattern.hasMatch(remainingText)) {
-        spans.add(TextSpan(text: remainingText));
+        italicLastIndex = match.end;
+      }
+      if (italicLastIndex < remainingText.length) {
+        spans.add(TextSpan(text: remainingText.substring(italicLastIndex)));
       }
     }
 
     // Falls keine Formatierung gefunden wurde, gib den gesamten Text zurück
-    if (spans.isEmpty) {
+    if (!foundFormatting) {
+      spans.clear();
       spans.add(TextSpan(text: text));
     }
 

@@ -43,7 +43,7 @@ class SendMessageProcess {
       final documentIds = response['document_ids'] as List<String>?;
       // 4. Bot-Bubble ersetzen
       messages[typingIndex] = ChatMessage(
-        text: answer,
+        text: answer, // answer ist immer ein String, auch wenn leer
         isUserMessage: false,
         sources: sources,
         documentIds: documentIds,
