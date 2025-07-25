@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../models/chat_message.dart';
 import 'citation_card.dart';
+import '../config/app_config.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -18,10 +19,6 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(message);
-    print('source: ${message.source}');
-    print('documentIds: ${message.documentIds}');
-    print('pages: ${message.pages}');
     return Align(
       alignment:
           message.isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
@@ -134,11 +131,6 @@ class ChatBubble extends StatelessWidget {
         documentIds.isEmpty ||
         documentIds.every((id) => noDocumentValues.contains(id) || id.trim().isEmpty);
 
-    print('sourcesAreNoDocument: $sourcesAreNoDocument');
-    print('documentIdIsNoDocument: $documentIdIsNoDocument');
-    print('sources: $sources');
-    print('documentIds: $documentIds');
-    
     // CitationCard nicht anzeigen wenn documentIds keine gültigen Dokumente enthalten
     if (documentIdIsNoDocument) {
       return false;
@@ -188,17 +180,21 @@ class ChatBubble extends StatelessWidget {
     // Erstelle CitationCards für jedes gültige Dokument
     if (validDocumentIds.isNotEmpty) {
       for (int i = 0; i < validDocumentIds.length; i++) {
-        cards.add(
-          Padding(
-            padding: EdgeInsets.only(bottom: cards.isNotEmpty ? 8.0 : 0),
-            child: CitationCard(
-              source: validSources[i],
-              documentId: validDocumentIds[i],
-              projectName: projectName,
-              pages: validPages.isNotEmpty ? [validPages[i]] : null,
+        // Only add citation card if source is not empty
+        if (validSources[i] != null && validSources[i]!.trim().isNotEmpty) {
+          cards.add(
+            Padding(
+              padding: EdgeInsets.only(bottom: cards.isNotEmpty ? 8.0 : 0),
+              child: CitationCard(
+                source: validSources[i],
+                documentId: validDocumentIds[i],
+                projectName: projectName,
+                pages: validPages.isNotEmpty ? [validPages[i]] : null,
+                showPages: AppConfig.chatMode != ChatMode.deepSearch,
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     }
     // Fallback: Wenn es keine documentIds gibt, aber gültige Quellen
@@ -216,6 +212,7 @@ class ChatBubble extends StatelessWidget {
               documentId: null,
               projectName: projectName,
               pages: pages,
+              showPages: AppConfig.chatMode != ChatMode.deepSearch,
             ),
           ),
         );

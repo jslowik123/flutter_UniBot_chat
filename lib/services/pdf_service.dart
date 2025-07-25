@@ -18,23 +18,16 @@ class PdfService {
   Future<Uint8List?> downloadPdfByDocumentId(String projectName, String documentId) async {
     try {
       // 1. Erst in der Database nach den PDF-Informationen suchen
-      print('🔍 Suche PDF-Informationen in Firebase Database...');
       final pdfInfo = await _getPdfInfoFromDatabase(projectName, documentId);
       
       if (pdfInfo == null) {
-        print('❌ Keine PDF-Informationen für Document ID "$documentId" gefunden');
         return null;
       }
-      
-      print('✅ PDF-Informationen gefunden:');
-      print('   - StorageURL: "${pdfInfo.storageUrl}"');
-      print('   - Name: "${pdfInfo.name ?? 'Unbekannt'}"');
       
       // 2. PDF direkt von der storageURL herunterladen
       return await _downloadPdfFromUrl(pdfInfo.storageUrl);
       
     } catch (e) {
-      print('❌ Fehler beim Laden des PDFs: $e');
       return null;
     }
   }
@@ -42,10 +35,8 @@ class PdfService {
   /// Holt PDF-Informationen (URL + Name) für eine Document ID
   Future<PdfInfo?> getPdfInfoByDocumentId(String projectName, String documentId) async {
     try {
-      print('🔍 Hole PDF-Informationen für Document ID "$documentId"...');
       return await _getPdfInfoFromDatabase(projectName, documentId);
     } catch (e) {
-      print('❌ Fehler beim Abrufen der PDF-Informationen: $e');
       return null;
     }
   }
@@ -53,21 +44,17 @@ class PdfService {
   /// Lädt PDF von der Firebase Storage URL herunter
   Future<Uint8List?> _downloadPdfFromUrl(String url) async {
     try {
-      print('🌐 Lade PDF von storageURL: "$url"');
       
       final response = await http.get(Uri.parse(url));
       
       if (response.statusCode == 200) {
         final bytes = response.bodyBytes;
-        print('✅ PDF erfolgreich heruntergeladen - Größe: ${bytes.length} bytes');
         return bytes;
       } else {
-        print('❌ HTTP Fehler beim Download: ${response.statusCode}');
         return null;
       }
       
     } catch (e) {
-      print('❌ Fehler beim Herunterladen des PDFs: $e');
       return null;
     }
   }
@@ -81,15 +68,10 @@ class PdfService {
           .child(projectName)
           .child(documentId);
       
-      print('🔍 Database Query Path: files/$projectName/$documentId');
-      
       final snapshot = await dbRef.once();
       final data = snapshot.snapshot.value;
       
-      print('🔍 Database Response: $data');
-      
       if (data == null) {
-        print('❌ Kein Dokument mit ID "$documentId" in der Database gefunden');
         return null;
       }
       
@@ -107,14 +89,12 @@ class PdfService {
       }
       
       if (storageUrl == null) {
-        print('❌ Keine storageURL im Dokument gefunden. Verfügbare Felder: ${data is Map ? data.keys.toList() : 'N/A'}');
         return null;
       }
       
       return PdfInfo(storageUrl: storageUrl, name: pdfName);
       
     } catch (e) {
-      print('❌ Fehler beim Abrufen der PDF-Informationen aus der Database: $e');
       return null;
     }
   }
@@ -128,7 +108,6 @@ class PdfService {
       return await _downloadPdfFromStorage(storagePath);
       
     } catch (e) {
-      print('❌ Fehler in Legacy-Methode: $e');
       return null;
     }
   }

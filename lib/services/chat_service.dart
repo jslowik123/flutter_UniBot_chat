@@ -45,14 +45,9 @@ class ChatService {
       final streamedResponse = await request.send();
       final responseData = await streamedResponse.stream.bytesToString();
 
-      print('--- DEBUG: HTTP-Response-Body ---');
-      print(responseData);
-
       if (streamedResponse.statusCode == 200) {
         try {
           final jsonResponse = json.decode(responseData);
-          print('--- DEBUG: Geparstes JSON ---');
-          print(jsonResponse);
 
           // Extrahiere die Response-Felder
           final result = <String, dynamic>{};
@@ -129,16 +124,8 @@ class ChatService {
             }
           }
 
-          print('--- DEBUG: Extrahierte Felder ---');
-          print('answer: ${result['answer']}');
-          print('sources: ${result['sources']}');
-          print('document_ids: ${result['document_ids']}');
-          print('pages: ${result['pages']}');
-
           return result;
         } catch (e) {
-          print('--- DEBUG: JSON-Parsing-Fehler ---');
-          print(e);
           // Falls JSON-Parsing fehlschlägt, gib die rohe Response als answer zurück
           return {'answer': responseData};
         }

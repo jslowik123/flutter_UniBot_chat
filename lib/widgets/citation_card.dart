@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'open_pdf_button.dart';
+import '../config/app_config.dart';
 
 class CitationCard extends StatelessWidget {
   final String? source;
@@ -7,6 +8,7 @@ class CitationCard extends StatelessWidget {
   final String? projectName;
   final String? documentName;
   final List<String>? pages;
+  final bool showPages;
 
   const CitationCard({
     super.key,
@@ -15,6 +17,7 @@ class CitationCard extends StatelessWidget {
     this.projectName,
     this.documentName,
     this.pages,
+    this.showPages = true,
   });
 
 
@@ -63,7 +66,7 @@ class CitationCard extends StatelessWidget {
               ),
             ),
           ],
-          if (pages != null && pages!.isNotEmpty) ...[
+          if (showPages && pages != null && pages!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(
               children: [
